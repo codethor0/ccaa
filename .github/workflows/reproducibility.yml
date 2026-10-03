@@ -12,8 +12,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: reproducibility-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
+    name: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
@@ -43,3 +48,49 @@ jobs:
             dot -Tsvg "$source" -o "/tmp/ccaa-figures/$(basename "${source%.dot}").svg"
           done
           test "$(find /tmp/ccaa-figures -name '*.svg' | wc -l)" -eq 7
+
+      - name: Validate repository metadata and release integrity
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_DESCRIPTION: "Public-source incident analysis and reference architecture for containing cyber-capable AI agents with state-bound, commit-time authorization."
+          EXPECTED_HOMEPAGE: "https://doi.org/10.5281/zenodo.23113152"
+          EXPECTED_PDF_SHA256: "0d11db683fe9f9eed585eb29854b02940bdf056e21d7a00ce4ce6e106460db1d"
+        run: |
+          set -euo pipefail
+
+          repo_json="$(gh api "repos/${GITHUB_REPOSITORY}")"
+
+          test "$(jq -r '.description // ""' <<<"$repo_json")" = "$EXPECTED_DESCRIPTION"
+          test "$(jq -r '.homepage // ""' <<<"$repo_json")" = "$EXPECTED_HOMEPAGE"
+          test "$(jq -r '.has_issues' <<<"$repo_json")" = "true"
+          test "$(jq -r '.has_projects' <<<"$repo_json")" = "false"
+          test "$(jq -r '.has_wiki' <<<"$repo_json")" = "false"
+
+          for topic in \
+            ai-security \
+            ai-agents \
+            agent-containment \
+            cybersecurity \
+            cyber-evaluation \
+            formal-methods \
+            llm-safety \
+            preprint \
+            reproducible-research \
+            security-research
+          do
+            jq -e --arg topic "$topic" '.topics | index($topic) != null' <<<"$repo_json" >/dev/null
+          done
+
+          release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest")"
+
+          test "$(jq -r '.draft' <<<"$release_json")" = "false"
+          test "$(jq -r '.prerelease' <<<"$release_json")" = "false"
+
+          asset_digest="$(
+            jq -r --arg name "Containing-Cyber-Capable-AI-Agents.pdf" \
+              '.assets[] | select(.name == $name) | .digest // ""' \
+              <<<"$release_json"
+          )"
+
+          test "$asset_digest" = "sha256:${EXPECTED_PDF_SHA256}"

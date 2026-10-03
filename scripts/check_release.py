@@ -2,6 +2,7 @@
 """Fail-closed consistency checks for the public research bundle."""
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -13,6 +14,7 @@ TITLE = (
     "Conditions, and a Reference Architecture for Bounded Autonomous Cyber Evaluation"
 )
 ORCID = "0009-0001-6573-385X"
+EXPECTED_PDF_SHA256 = "0d11db683fe9f9eed585eb29854b02940bdf056e21d7a00ce4ce6e106460db1d"
 
 REQUIRED = [
     "paper.tex",
@@ -28,6 +30,9 @@ REQUIRED = [
     "scripts/check_release.py",
     "tests/test_preflight.py",
     "examples/agent_eval_scope.example.json",
+    ".github/workflows/reproducibility.yml",
+    ".github/dependabot.yml",
+    ".github/ISSUE_TEMPLATE/review-finding.md",
 ]
 FIGURES = [
     "fig1_failure_classes",
@@ -50,7 +55,7 @@ def main() -> None:
         require((ROOT / rel).is_file(), f"missing {rel}")
 
     for stem in FIGURES:
-        for ext in ("dot", "pdf"):
+        for ext in ("dot", "pdf", "png"):
             rel = Path("figures") / f"{stem}.{ext}"
             require((ROOT / rel).is_file(), f"missing {rel}")
 
@@ -59,6 +64,26 @@ def main() -> None:
     readme = (ROOT / "README.md").read_text()
     cff = (ROOT / "CITATION.cff").read_text()
     zenodo = json.loads((ROOT / ".zenodo.json").read_text())
+
+
+    pdf_sha256 = hashlib.sha256(
+        (ROOT / "Containing-Cyber-Capable-AI-Agents.pdf").read_bytes()
+    ).hexdigest()
+    require(
+        pdf_sha256 == EXPECTED_PDF_SHA256,
+        f"published PDF SHA-256 mismatch: {pdf_sha256}",
+    )
+
+    readme_markers = (
+        "actions/workflows/reproducibility.yml/badge.svg?branch=main",
+        "zenodo.org/badge/DOI/10.5281/zenodo.23113152.svg",
+        "paper-CC%20BY%204.0",
+        "code-MIT",
+        "0009--0001--6573--385X",
+        "https://doi.org/10.5281/zenodo.23113152",
+    )
+    for marker in readme_markers:
+        require(marker in readme, f"README publication marker missing: {marker}")
 
     require("October 2026" in tex and ORCID in tex, "paper metadata missing date or ORCID")
     require(TITLE in tex, "paper title mismatch")
@@ -108,7 +133,7 @@ def main() -> None:
         r"github_pat_[A-Za-z0-9_]",
         r"AKIA[0-9A-Z]{16}",
     ]
-    scan_ext = {".tex", ".md", ".py", ".json", ".cff", ".dot"}
+    scan_ext = {".tex", ".md", ".py", ".json", ".cff", ".dot", ".yml", ".yaml"}
     for path in ROOT.rglob("*"):
         if path.is_file() and path.suffix.lower() in scan_ext and "build" not in path.parts:
             body = path.read_text(errors="ignore")
@@ -116,7 +141,10 @@ def main() -> None:
                 require(not re.search(pattern, body), f"possible secret material in {path.relative_to(ROOT)}")
 
     print("RELEASE SURFACE CHECK: PASS")
-    print(f"figures={len(FIGURES)} tests=12 doi=unassigned version_markers=none")
+    print(
+        f"figures={len(FIGURES)} tests=12 doi=unassigned "
+        f"version_markers=none pdf_sha256=verified"
+    )
 
 
 if __name__ == "__main__":
