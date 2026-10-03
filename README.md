@@ -1,59 +1,86 @@
 # Containing Cyber-Capable AI Agents
 
-[![Reproducibility](https://github.com/codethor0/ccaa/actions/workflows/reproducibility.yml/badge.svg)](https://github.com/codethor0/ccaa/actions/workflows/reproducibility.yml)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23113152.svg)](https://doi.org/10.5281/zenodo.23113152)
-
 **Incident Evidence, Formal Safety Conditions, and a Reference Architecture for Bounded Autonomous Cyber Evaluation**
 
-Thor Thor  
-Independent Open-Source Researcher, THOR-SEC  
-ORCID: 0009-0001-6573-385X
+**Thor Thor**<br>
+Independent Open-Source Researcher, [THOR-SEC](https://codethor0.github.io/thor-sec/)<br>
+ORCID: [0009-0001-6573-385X](https://orcid.org/0009-0001-6573-385X)
 
-October 2, 2026
+> Cyber-capable AI evaluations fail safely only when external effects are mediated at commit time against current state, current scope, current authority, and the exact destination that will receive the effect.
 
-## Status
+This research was conducted independently on the author's own time and is not sponsored by, affiliated with, or representative of any employer.
 
-This repository contains the publication source and reproducibility artifacts for *Containing Cyber-Capable AI Agents*.
+## Overview
 
-Archival deposit: https://doi.org/10.5281/zenodo.23113152 (CC BY 4.0). The committed `Containing-Cyber-Capable-AI-Agents.pdf` is the exact byte-identical artifact deposited on Zenodo (SHA-256 `0d11db683fe9f9eed585eb29854b02940bdf056e21d7a00ce4ce6e106460db1d`).
+*Containing Cyber-Capable AI Agents* reconstructs the public incident record for cyber-capable AI evaluations through October 2, 2026 and develops a reference containment architecture for bounded autonomous cyber evaluation.
 
-The paper is a public-source technical analysis and reference design. It is not peer reviewed, does not claim deployed-system validation, and does not claim that any specific real-world system implements the proposed architecture.
+The paper treats the failure surface as broader than sandbox escape alone. It includes unintended internet paths, malicious publication to public infrastructure, cross-run communication through shared state, multi-agent coordination, third-party or internal compromise, and unsanctioned action against real people under permitted internet access.
 
-## Scope and contributions
+The proposed architecture replaces stateless action-only policy with **state-bound, commit-time authorization under complete mediation**. Every effect-capable action is revalidated immediately before execution against the exact request, current scope, run epoch, policy version, state generation, budget, destination binding, revocation state, and short-lived authorization token.
 
-The paper:
+## Core Contributions
 
-- reconstructs the public incident record through October 2, 2026;
-- incorporates Anthropic's September reassessment and fourth disclosed incident;
-- incorporates OpenAI's August 26 technical report and the METR/Redwood independent investigation;
-- includes AISI's permitted-internet incident as a distinct containment failure class;
-- treats shared writable infrastructure and unauthorized cross-run communication as first-class containment threats;
-- replaces stateless action-only policy with state-bound, commit-time authorization;
-- separates prevention, containment, and recovery guarantees;
-- makes destination/service binding, stale authorization, revocation, budget races, run epochs, and policy versions explicit;
-- includes seven publication diagrams rebuilt from editable Graphviz source;
-- includes a dependency-free preflight validator and 12 unit tests;
-- states explicit limitations and non-claims.
+| Area | Contribution |
+| --- | --- |
+| Incident reconstruction | Separates verified public record, analytical inference, and reference design across disclosed cyber-capable-agent incidents |
+| Failure model | Treats unintended egress, public publication, shared-state channels, cross-run coordination, and permitted-internet misuse as distinct containment classes |
+| Complete mediation | Requires every effect-capable action to pass an independent authorization boundary |
+| Stateful authorization | Binds authorization to request, destination, policy, run epoch, state generation, budget, and revocation state |
+| Commit-time safety | Re-normalizes and revalidates the action atomically at the point where an external effect becomes possible |
+| Cross-run isolation | Models unauthorized communication through shared writable infrastructure as a first-class security property |
+| Layered review | Separates deterministic policy, probabilistic guardian review, and human approval for high-impact trust-boundary crossings |
+| Reproducibility | Includes seven editable Graphviz figures, a dependency-free preflight validator, unit tests, and release-surface checks |
 
-## Core security claim
+## Architecture at a Glance
 
-The formal result is conditional. Under the paper's stated assumptions, a prohibited external effect is unreachable when every effect-capable action is completely mediated and the effect gate atomically revalidates the exact request, current scope, run epoch, policy, state generation, budget, destination binding, revocation state, and short-lived authorization at commit time.
+### Failure classification
 
-The paper does **not** claim that a model-based guardian alone proves containment. It also does not claim a machine-checked proof or TLA+ model-checking result; the formal theorem is an architectural implication under explicit proof obligations.
+<p align="center">
+  <img src="figures/fig1_failure_classes.png" alt="Failure classification for cyber-capable AI agent containment" width="92%">
+</p>
 
-## Repository layout
+*Figure 1. Containment failure classes used to connect observed incidents to explicit architectural requirements.*
 
-- `paper.tex` - publication source
-- `Containing-Cyber-Capable-AI-Agents.pdf` - compiled paper
-- `abstract.txt` - plain-text abstract
-- `figures/*.dot` - editable Graphviz source for all figures
-- `figures/*.pdf` - vector figures used in the paper
-- `scripts/agent_eval_preflight.py` - dependency-free preflight validator
-- `tests/test_preflight.py` - standard-library unit tests
-- `examples/agent_eval_scope.example.json` - example scope manifest
-- `scripts/check_release.py` - publication/repository consistency checks
-- `CITATION.cff` - citation metadata
-- `.zenodo.json` - Zenodo deposit metadata; intentionally contains no DOI before deposit
+### Reference architecture
+
+<p align="center">
+  <img src="figures/fig6_reference_architecture.png" alt="Reference architecture for bounded autonomous cyber evaluation" width="95%">
+</p>
+
+*Figure 6. Three-plane containment architecture: an untrusted execution plane proposes actions, an independent authorization control plane mediates them, and the effect plane executes only approved actions through constrained identities and deny-by-default network controls.*
+
+### Authorization transaction
+
+<p align="center">
+  <img src="figures/fig5_authorization_transaction.png" alt="Authorization transaction for external actions" width="92%">
+</p>
+
+*Figure 5. External actions move from proposal and normalization through deterministic policy, guardian review, human gating, state-bound authorization, atomic commit, and constrained execution. Failure paths converge on deny or escalation.*
+
+## Core Security Claim
+
+The formal result is conditional.
+
+Under the paper's stated assumptions, a prohibited external effect is unreachable when every effect-capable action is completely mediated and the effect gate atomically revalidates the exact request, current scope, run epoch, policy, state generation, budget, destination binding, revocation state, and short-lived authorization at commit time.
+
+The paper does **not** claim that a model-based guardian alone proves containment. It does not claim deployed-system validation, a machine-checked proof, or that any specific real-world system implements the proposed architecture.
+
+## Continuous Verification
+
+The `Reproducibility` workflow runs on pushes and pull requests to `main`, on manual dispatch, and weekly.
+
+It verifies:
+
+- the dependency-free validator unit tests;
+- the publication/repository release surface;
+- all seven editable Graphviz figure sources.
+
+The committed paper PDF is the exact artifact deposited on Zenodo.
+
+```text
+SHA-256
+0d11db683fe9f9eed585eb29854b02940bdf056e21d7a00ce4ce6e106460db1d
+```
 
 ## Reproduce
 
@@ -73,20 +100,78 @@ make all
 
 `make check` runs the validator unit tests and release-surface checks. `make all` regenerates the vector figures and builds the paper.
 
-## Validator boundary
+The companion preflight validator can also be run directly:
 
-The preflight validator is a diagnostic release gate, not a proof of isolation. A successful run does not prove the absence of arbitrary egress, future DNS changes, hidden credentials, host compromise, or runtime drift. Those properties require independent runtime enforcement as described in the paper.
+```bash
+python3 scripts/agent_eval_preflight.py
+python3 -m unittest discover -s tests -v
+```
+
+The validator is a diagnostic release gate, not a proof of runtime isolation. A successful result does not prove the absence of arbitrary egress, hidden credentials, host compromise, future DNS changes, or runtime drift. Those properties require independent runtime enforcement.
+
+## Repository Structure
+
+| Path | Description | License |
+| --- | --- | --- |
+| `Containing-Cyber-Capable-AI-Agents.pdf` | Published preprint; byte-identical to the Zenodo deposit | CC BY 4.0 |
+| `paper.tex` | LaTeX publication source | CC BY 4.0 |
+| `abstract.txt` | Plain-text abstract | CC BY 4.0 |
+| `figures/*.dot` | Editable Graphviz sources for all seven figures | CC BY 4.0 |
+| `figures/*.pdf` | Vector figures used by the paper | CC BY 4.0 |
+| `figures/*.png` | GitHub-renderable figure previews | CC BY 4.0 |
+| `scripts/agent_eval_preflight.py` | Dependency-free preflight validator | MIT |
+| `scripts/check_release.py` | Publication/repository consistency checks | MIT |
+| `tests/test_preflight.py` | Standard-library unit tests | MIT |
+| `examples/agent_eval_scope.example.json` | Example bounded-evaluation scope manifest | MIT |
+| `.github/workflows/reproducibility.yml` | Continuous reproducibility checks | MIT |
+| `CITATION.cff` | Machine-readable citation metadata | Metadata |
+| `.zenodo.json` | Zenodo deposit metadata | Metadata |
+
+## Publication
+
+| Item | Value |
+| --- | --- |
+| Publication date | October 2, 2026 |
+| DOI | [10.5281/zenodo.23113152](https://doi.org/10.5281/zenodo.23113152) |
+| GitHub release | [Latest release](https://github.com/codethor0/ccaa/releases/latest) |
+| Paper license | CC BY 4.0 |
+| Code license | MIT |
+
+## Related Work by the Author
+
+- Thor, T. (2026). *Mission-Invariant Architecture Morphing: Service-Graph Reconfiguration Against Post-Access Reconnaissance, with Cryptographic Epoch Isolation and Mission-Domain State Continuity*. Zenodo. https://doi.org/10.5281/zenodo.23001045
+- Thor, T. (2026). *Attack Calculus: A Typed, Evidence-Aware State-Transition Calculus for Cross-Domain Cybersecurity Reasoning*. Zenodo. https://doi.org/10.5281/zenodo.23092790
+- Thor, T. (2026). *Memory-Egress Cryptographic Interlock (MECI): A Hardware-Enforced Capability-Separation Model for AI Memory Security*. Zenodo. https://doi.org/10.5281/zenodo.23109676
 
 ## Citation
 
-Cite the archival deposit:
+Thor, T. (2026). *Containing Cyber-Capable AI Agents: Incident Evidence, Formal Safety Conditions, and a Reference Architecture for Bounded Autonomous Cyber Evaluation*. Zenodo. https://doi.org/10.5281/zenodo.23113152
 
-> Thor, T. (2026). *Containing Cyber-Capable AI Agents: Incident Evidence, Formal Safety Conditions, and a Reference Architecture for Bounded Autonomous Cyber Evaluation* [Preprint]. https://doi.org/10.5281/zenodo.23113152
+Machine-readable citation metadata is available in [`CITATION.cff`](CITATION.cff).
 
-## Licenses
+## Research Status and Scope
 
-The paper text, abstract, and figures are licensed under Creative Commons Attribution 4.0 International. See `LICENSE-PAPER.md`.
+This release is a public-source technical analysis, formal architectural model, and reference design.
 
-The validator, tests, CI configuration, and build tooling are licensed under the MIT License. See `LICENSE-CODE`.
+It does **not** claim:
 
-This repository intentionally contains no live credentials, undisclosed incident artifacts, victim identifiers, or weaponized exploit payloads.
+- that every reported event shares the same root cause;
+- that any named organization deploys the proposed reference architecture;
+- that guardian-model review provides a deterministic security guarantee;
+- that the preflight validator proves runtime containment;
+- that the architecture has been empirically validated as a deployed production system.
+
+The paper separates prevention, containment, and recovery claims and states the assumptions under which its formal safety argument applies.
+
+## Review and Feedback
+
+Corrections, counterexamples, missing prior art, architecture critiques, reproducibility findings, and implementation feedback are welcome.
+
+Please open a GitHub issue and identify the relevant section, theorem, figure, requirement, or artifact.
+
+## License
+
+- Paper, LaTeX source, abstract, and figures: **Creative Commons Attribution 4.0 International (CC BY 4.0)**
+- Validator, tests, CI configuration, examples, and build tooling: **MIT License**
+
+See [`LICENSE-PAPER.md`](LICENSE-PAPER.md) and [`LICENSE-CODE`](LICENSE-CODE) for the complete terms.
