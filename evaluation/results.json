@@ -1,0 +1,143 @@
+{
+  "cross_run_filesystem_isolation": {
+    "passed": true,
+    "runs": [
+      {
+        "other_error": "PermissionError",
+        "other_read": false,
+        "own_read": true,
+        "returncode": 0,
+        "stderr": "",
+        "uid": 65533
+      },
+      {
+        "other_error": "PermissionError",
+        "other_read": false,
+        "own_read": true,
+        "returncode": 0,
+        "stderr": "",
+        "uid": 65534
+      }
+    ],
+    "supported": true
+  },
+  "environment": {
+    "cpu_count": 5,
+    "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+    "machine": "x86_64",
+    "max_rss_kib": 94256,
+    "memory_total_kib": 6090704,
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "processor": "",
+    "python": "3.13.5"
+  },
+  "limitations": [
+    "No public target is contacted.",
+    "The process profiles are controlled Linux process experiments, not three production container deployments.",
+    "The preflight validator observes seccomp posture but does not infer policy semantics; the separate seccomp experiment proves only that one child filter denied socket() in this environment.",
+    "The cross-run filesystem experiment covers one local Linux DAC substrate only; it does not establish public-cloud or shared-service isolation.",
+    "AtomicCommitGate demonstrates in-process serialization only; it is not an OS reference monitor."
+  ],
+  "linux_posture": {
+    "capability_dropped_no_new_privs_child": {
+      "returncode": 0,
+      "status": {
+        "CapAmb": "0000000000000000",
+        "CapBnd": "0000000000000000",
+        "CapEff": "0000000000000000",
+        "CapInh": "0000000000000000",
+        "CapPrm": "0000000000000000",
+        "NoNewPrivs": "1",
+        "Seccomp": "0",
+        "Seccomp_filters": "0"
+      },
+      "stderr": ""
+    },
+    "current_process": {
+      "CapAmb": "0000000000000000",
+      "CapBnd": "00000000800405fb",
+      "CapEff": "00000000800405fb",
+      "CapInh": "0000000000000000",
+      "CapPrm": "00000000800405fb",
+      "NoNewPrivs": "0",
+      "Seccomp": "0",
+      "Seccomp_filters": "0"
+    },
+    "interpretation": "Observed /proc posture only. Seccomp flags are observed, not simulated; these profiles do not establish complete mediation.",
+    "user_and_network_namespace_plus_capability_drop_child": {
+      "returncode": 0,
+      "status": {
+        "CapAmb": "0000000000000000",
+        "CapBnd": "0000000000000000",
+        "CapEff": "0000000000000000",
+        "CapInh": "0000000000000000",
+        "CapPrm": "0000000000000000",
+        "NoNewPrivs": "1",
+        "Seccomp": "0",
+        "Seccomp_filters": "0"
+      },
+      "stderr": ""
+    }
+  },
+  "live_loopback": {
+    "accepted_connections": 1,
+    "all_loopback": true,
+    "localhost_addresses": [
+      "127.0.0.1",
+      "::1"
+    ],
+    "numeric_probe_detail": "connected=127.0.0.1:47847 numeric_binding=verified",
+    "numeric_probe_reachable": true
+  },
+  "purpose": "controlled local integration and reference-artifact characterization; not production validation",
+  "replay_concurrency_stress": {
+    "actual_commits": 200,
+    "expected_commits": 200,
+    "rounds": 200,
+    "rounds_with_invariant_failure": 0,
+    "workers_per_round": 8
+  },
+  "schema_version": "1",
+  "seccomp_socket_block": {
+    "returncode": 0,
+    "socket_blocked": true,
+    "socket_errno": 1,
+    "status": {
+      "NoNewPrivs": "1",
+      "Seccomp": "2",
+      "Seccomp_filters": "1"
+    },
+    "stderr": "",
+    "supported": true
+  },
+  "test_suite": {
+    "discovered_tests": 96
+  },
+  "token_microbenchmark": {
+    "atomic_gate_verify_policy_replay_consume_callback": {
+      "mean_us": 85.766,
+      "median_us": 79.81,
+      "n": 2000,
+      "p95_us": 105.749,
+      "p99_us": 196.867,
+      "stdev_us": 23.411
+    },
+    "issue": {
+      "mean_us": 57.114,
+      "median_us": 53.861,
+      "n": 2000,
+      "p95_us": 72.429,
+      "p99_us": 114.532,
+      "stdev_us": 14.257
+    },
+    "iterations": 2000,
+    "verify": {
+      "mean_us": 67.713,
+      "median_us": 62.985,
+      "n": 2000,
+      "p95_us": 86.631,
+      "p99_us": 145.049,
+      "stdev_us": 18.924
+    }
+  }
+}

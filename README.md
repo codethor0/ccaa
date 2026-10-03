@@ -21,7 +21,19 @@ This research was conducted independently on the author's own time and is not sp
 
 The paper treats the failure surface as broader than sandbox escape alone. It includes unintended internet paths, malicious publication to public infrastructure, cross-run communication through shared state, multi-agent coordination, third-party or internal compromise, and unsanctioned action against real people under permitted internet access.
 
-The proposed architecture replaces stateless action-only policy with **state-bound, commit-time authorization under complete mediation**. Every effect-capable action is revalidated immediately before execution against the exact request, current scope, run epoch, policy version, state generation, budget, destination binding, revocation state, and short-lived authorization token.
+The proposed architecture specifies **state-bound, commit-time authorization under complete mediation** rather than relying on stateless action-only policy. Every effect-capable action is revalidated immediately before execution against the exact request, current scope, run epoch, policy version, state generation, budget, destination binding, revocation state, and short-lived authorization token.
+
+## Destination Binding and Commit-Time Authorization
+
+**Current prepublication manuscript.** The DOI above and `CITATION.cff` identify the last archived publication. The current PDF and LaTeX source contain the manuscript being prepared for the next archival deposit, while the unchanged prior PDF is preserved under `publication/zenodo-23113152/`.
+
+Dipankar Sarkar identified a DNS rebinding counterexample: approving a hostname and then resolving it again for connection can substitute an out-of-scope address. The original paper already prohibited unconstrained second resolution, but did not make the connector contract or regression evidence sufficiently concrete.
+
+The current manuscript defines binding over the logical origin, selected numeric IP, address family, port, transport, service-identity rule, route, and lease. It adds an explicit realized-destination predicate to the invariant and A6, separates first-packet authorization from TLS/application authorization, and accounts for redirects, retries, connection pools, and delegated proxy routes. The conditional theorem retains its scope; satisfying its binding premise remains an implementation proof obligation.
+
+The preflight now passes approved numeric address snapshots directly to sockets. Required probes cannot re-resolve a hostname. Forbidden probes need explicit diagnostic `probe_cidrs`, and DNS errors or unverifiable peers fail the gate. The example manifest probes only the two explicitly scoped metadata endpoints; add other diagnostics only with independently approved address ranges. These probes send no application payload and do not implement TLS verification or a production action broker.
+
+The clean suite has 96 discovered tests covering scope/posture validation, adversarial destination binding, canonical authorization encoding, tamper and freshness failures, revocation, replay, concurrency, and live loopback integration. Controlled evaluation results are stored in `evaluation/results.json`.
 
 ## Core Contributions
 
@@ -34,7 +46,7 @@ The proposed architecture replaces stateless action-only policy with **state-bou
 | Commit-time safety | Re-normalizes and revalidates the action atomically at the point where an external effect becomes possible |
 | Cross-run isolation | Models unauthorized communication through shared writable infrastructure as a first-class security property |
 | Layered review | Separates deterministic policy, probabilistic guardian review, and human approval for high-impact trust-boundary crossings |
-| Reproducibility | Includes seven editable Graphviz figures, a dependency-free preflight validator, unit tests, and release-surface checks |
+| Reproducibility | Includes eight editable Graphviz figures, a dependency-free preflight validator, unit tests, and release-surface checks |
 
 ## Architecture at a Glance
 
@@ -49,10 +61,10 @@ The proposed architecture replaces stateless action-only policy with **state-bou
 ### Reference architecture
 
 <p align="center">
-  <img src="figures/fig6_reference_architecture.png" alt="Reference architecture for bounded autonomous cyber evaluation" width="95%">
+  <img src="figures/fig7_reference_architecture.png" alt="Reference architecture for bounded autonomous cyber evaluation" width="95%">
 </p>
 
-*Figure 6. Three-plane containment architecture: an untrusted execution plane proposes actions, an independent authorization control plane mediates them, and the effect plane executes only approved actions through constrained identities and deny-by-default network controls.*
+*Figure 7. Three-plane containment architecture: an untrusted execution plane proposes actions, an independent authorization control plane mediates them, and the effect plane executes only approved actions through constrained identities and deny-by-default network controls.*
 
 ### Authorization transaction
 
@@ -78,14 +90,16 @@ It verifies:
 
 - the dependency-free validator unit tests;
 - the publication/repository release surface;
-- all seven editable Graphviz figure sources.
+- all eight editable Graphviz figure sources.
 
-The committed paper PDF is the exact artifact deposited on Zenodo.
+The previously deposited PDF is preserved unchanged in `publication/zenodo-23113152/`. Its original digest is:
 
 ```text
 SHA-256
 0d11db683fe9f9eed585eb29854b02940bdf056e21d7a00ce4ce6e106460db1d
 ```
+
+The current prepublication manuscript has a separate digest and prepublication status in `publication/manifest.json`; automated checks verify both files without assigning the new bytes the prior DOI.
 
 ## Reproduce
 
@@ -103,7 +117,7 @@ make check
 make all
 ```
 
-`make check` runs the validator unit tests and release-surface checks. `make all` regenerates the vector figures and builds the paper.
+`make check` runs the validator unit tests and release-surface checks. `make all` regenerates vector figures as needed and builds the paper to `build/paper.pdf`. Building does not overwrite the reviewed working PDF or the immutable published copy. Build-output bytes may differ across TeX/Graphviz environments; the committed artifact hashes identify the reviewed bytes.
 
 The companion preflight validator can also be run directly:
 
@@ -118,15 +132,22 @@ The validator is a diagnostic release gate, not a proof of runtime isolation. A 
 
 | Path | Description | License |
 | --- | --- | --- |
-| `Containing-Cyber-Capable-AI-Agents.pdf` | Published preprint; byte-identical to the Zenodo deposit | CC BY 4.0 |
+| `Containing-Cyber-Capable-AI-Agents.pdf` | Current prepublication manuscript; pending archival deposit | CC BY 4.0 |
 | `paper.tex` | LaTeX publication source | CC BY 4.0 |
 | `abstract.txt` | Plain-text abstract | CC BY 4.0 |
-| `figures/*.dot` | Editable Graphviz sources for all seven figures | CC BY 4.0 |
+| `figures/*.dot` | Editable Graphviz sources for all eight figures | CC BY 4.0 |
 | `figures/*.pdf` | Vector figures used by the paper | CC BY 4.0 |
 | `figures/*.png` | GitHub-renderable figure previews | CC BY 4.0 |
 | `scripts/agent_eval_preflight.py` | Dependency-free preflight validator | MIT |
+| `scripts/commit_authorization.py` | State-bound authorization and atomic in-process gate demonstrator | MIT |
 | `scripts/check_release.py` | Publication/repository consistency checks | MIT |
-| `tests/test_preflight.py` | Standard-library unit tests | MIT |
+| `tests/test_preflight.py` | Original posture and scope unit tests | MIT |
+| `tests/test_destination_binding.py` | Adversarial numeric-probe regressions | MIT |
+| `tests/test_commit_authorization.py` | Canonicalization, tamper, freshness, replay, and concurrency tests | MIT |
+| `tests/test_live_loopback.py` | Live local resolver/socket integration tests | MIT |
+| `evaluation/` | Controlled Linux posture, loopback, replay/concurrency, and latency characterization | MIT |
+| `publication/manifest.json` | Separate prepublication and archived artifact identities | Metadata |
+| `publication/zenodo-23113152/` | Immutable published PDF | CC BY 4.0 |
 | `examples/agent_eval_scope.example.json` | Example bounded-evaluation scope manifest | MIT |
 | `.github/workflows/reproducibility.yml` | Continuous reproducibility checks | MIT |
 | `CITATION.cff` | Machine-readable citation metadata | Metadata |
@@ -136,7 +157,8 @@ The validator is a diagnostic release gate, not a proof of runtime isolation. A 
 
 | Item | Value |
 | --- | --- |
-| Publication date | October 2, 2026 |
+| Archived publication date | October 2, 2026 |
+| Current manuscript | Prepublication; not yet deposited |
 | DOI | [10.5281/zenodo.23113152](https://doi.org/10.5281/zenodo.23113152) |
 | GitHub release | [Latest release](https://github.com/codethor0/ccaa/releases/latest) |
 | Paper license | CC BY 4.0 |
@@ -156,7 +178,7 @@ Machine-readable citation metadata is available in [`CITATION.cff`](CITATION.cff
 
 ## Research Status and Scope
 
-This release is a public-source technical analysis, formal architectural model, and reference design.
+This work is a public-source technical analysis, formal architectural model, and reference design. The current manuscript is prepublication and does not silently alter the archived DOI record.
 
 It does **not** claim:
 

@@ -15,7 +15,7 @@
 \usepackage{url}
 \usepackage{xurl}
 \emergencystretch=3em
-\usepackage[hidelinks]{hyperref}
+\usepackage[hidelinks,pdfversion=1.7]{hyperref}
 \usepackage{bookmark}
 \usepackage{titlesec}
 \usepackage{ragged2e}
@@ -83,11 +83,11 @@ GitHub: \url{https://github.com/codethor0} \quad \url{https://codethor0.github.i
 \end{center}
 
 \begin{abstract}
-\noindent Cyber-capable AI agents have now crossed several different security boundaries during real evaluations. Public disclosures from Anthropic, OpenAI, Hugging Face, the UK AI Security Institute (AISI), and independent investigators show that the failure mode is broader than ``sandbox escape.'' Agents have reached real organizations through unintended internet paths, published malicious artifacts to public infrastructure, exploited evaluation services to create cross-run communication channels, coordinated across hundreds of parallel instances, compromised third-party and internal infrastructure, and taken unsanctioned action against real people while internet access was intentionally enabled. The common security error is an authority gap: the agent's effective ability to create external effects exceeds the authority the operator intended to delegate.
+\noindent Cyber-capable AI agents have crossed several distinct security boundaries during real evaluations. Public disclosures from Anthropic, OpenAI, Hugging Face, the UK AI Security Institute (AISI), and independent investigators show that the failure mode is broader than ``sandbox escape.'' Agents have reached real organizations through unintended internet paths, published malicious artifacts to public infrastructure, exploited evaluation services as cross-run communication channels, coordinated across hundreds of parallel instances, compromised third-party and internal infrastructure, and taken unsanctioned action against real people while internet access was intentionally enabled. The common security error is an authority gap: effective ability to create external effects exceeds the authority the operator intended to delegate.
 
-This paper reconstructs the public incident record through October 2, 2026, separates verified facts from analysis, and develops a stronger containment model. The model replaces action-only policy with stateful commit-time authorization. Every consequential external effect must be completely mediated and authorized against an immutable scope, current run epoch, current policy, current budget, and cryptographically bound destination at the moment of commit. Short-lived authorization tokens are bound to the normalized request and state generation; stale or mismatched tokens fail closed. The paper also formalizes cross-run isolation, distinguishes prevention from containment and recovery, and treats model-based guardians as probabilistic detectors rather than security boundaries.
+This paper reconstructs the public incident record through October 2, 2026, separates verified facts from analysis, and specifies a containment architecture based on stateful commit-time authorization. Every consequential external effect is required to cross an independent gate and be authorized against an immutable scope, current run epoch, current policy, current budget, revocation state, and a destination binding that identifies the concrete endpoint and service identity used by the effect. The paper's primary technical refinement is a numeric endpoint/service binding contract and DNS-rebinding counterexample showing why hostname-only authorization is insufficient: a stable logical name does not guarantee that the endpoint used at commit is the endpoint policy authorized.
 
-A reference architecture combines deterministic policy, synchronous guardian review, human approval for trust-boundary crossings, ephemeral workload identity, deny-by-default networking, immutable telemetry, independent containment authority, run budgets, safe termination, and explicit multi-agent communication domains. A companion standard-library Python preflight validator and unit tests are included as reproducibility artifacts. The core conclusion is narrow: cyber-agent safety cannot be established by prompt intent or monitor capability alone. It requires a control plane that makes unauthorized external effects unreachable under explicit, testable assumptions.
+The formal result is deliberately a conformance theorem, not deployment proof: under explicit mediation, policy-soundness, freshness, binding, atomicity, unforgeability, and control-plane-independence obligations, a conforming commit gate preserves the commit-authorization invariant. A reference architecture combines deterministic policy, synchronous guardian review, hardened human approval, ephemeral workload identity, deny-by-default networking, scope-relative cross-run isolation, immutable telemetry, independent recovery, and safe termination. Companion artifacts include a fail-closed Python preflight validator and a separate state-bound authorization demonstrator with replay protection and atomic in-process commit semantics. The validator observes Linux capability, \code{NoNewPrivs}, and seccomp posture; it does not simulate arbitrary capability or seccomp behavior and does not prove complete mediation. The core conclusion is narrow: prompt intent and monitor capability are not security boundaries; externally visible authority must be machine-verifiably bound and revalidated at commit.
 \end{abstract}
 \vspace{-0.4em}
 \noindent\textbf{Keywords:} autonomous agents; cyber evaluation; AI security; containment; complete mediation; action broker; guardian monitor; authorization; workload identity; sandbox escape; multi-agent coordination; incident reconstruction
@@ -122,16 +122,15 @@ Figure~\ref{fig:classes} summarizes the three failure classes now present in the
 \end{figure}
 
 \subsection{Contributions}
-This paper makes six substantive contributions:
+This paper makes six scoped contributions:
 \begin{enumerate}
-  \item It reconstructs the incident record through October 2, 2026 and incorporates interpretations changed by later disclosures.
-  \item It adds the AISI incident as a distinct permitted-internet authority failure rather than treating every incident as a sandbox escape.
-  \item It introduces cross-run shared-state and unauthorized inter-agent communication as first-class containment threats.
-  \item It replaces the stateless policy function $P(a)$ with stateful, commit-time authorization bound to a normalized request, signed scope, run epoch, destination identity, policy version, budget, and state generation.
-  \item It distinguishes \emph{prevention}, \emph{containment}, and \emph{recovery}, with different latency requirements and assurance claims.
-  \item It rebuilds the preflight artifact so that its checks and limitations match the stronger formal model, and validates the artifact with automated unit tests.
+  \item It reconstructs the 2026 incident record through October 2 and separates verified public record, analytical inference, and reference design so later corrections do not silently become architectural premises.
+  \item It distinguishes three observed failure classes---unintended boundary escape, cross-run shared-state coordination, and permitted-internet authority failure---rather than collapsing all external action into ``sandbox escape.''
+  \item It gives a concrete destination-binding contract and DNS-rebinding counterexample showing that hostname-only authorization is insufficient; connection authorization must bind the selected numeric endpoint, route, transport, logical origin, and stage-appropriate service identity.
+  \item It defines an independent normative authorization specification, an implementation authorization predicate, a state-bound authorization object, and a commit-authorization conformance theorem whose assumptions are explicit deployment proof obligations.
+  \item It states scope-relative cross-run isolation and separates prevention, containment, and recovery by their timing and enforcement obligations, including the latency condition for asynchronous intervention.
+  \item It provides reproducible reference artifacts: a fail-closed preflight validator, adversarial destination-binding regressions, a state-bound authorization demonstrator with replay protection, live loopback integration tests, and controlled Linux-process characterization.
 \end{enumerate}
-
 \subsection{Non-claims}
 The paper does not establish that a deployed AI system is safe. The formal results are conditional on explicit assumptions such as complete mediation and commit atomicity. Model-based guardian behavior is not proven. The preflight script is a diagnostic gate, not a proof of isolation. The incident reconstructions are public-source reconstructions, not privileged forensic investigations.
 
@@ -160,6 +159,30 @@ This distinction is important because the public record remains incomplete. Exac
 
 \subsection{Later evidence that materially changes the record}
 Several source gaps present at the end of July are now partially closed. More importantly, later disclosures altered the factual model itself: Anthropic added a fourth incident and revised its interpretation of model reasoning; OpenAI disclosed the message-board history and later internal compromise; METR/Redwood quantified multi-agent coordination; and AISI disclosed an independent open-internet incident. The analysis therefore uses the later evidence base rather than preserving interpretations tied to the earlier record.
+
+\section{Conceptual Prior Art and Novelty Boundary}
+The architectural primitives used here have deep prior art. Anderson's reference-monitor formulation requires a small, tamper-resistant, always-invoked enforcement mechanism, and Saltzer and Schroeder's complete-mediation principle requires authorization to be checked for every access.\cite{anderson1972,saltzer1975} Hardy's confused-deputy analysis is directly relevant to agent systems in which software can exercise authority that a requester did not intend to delegate.\cite{hardy1988} SPIFFE/SPIRE provides a mature model for short-lived workload identity and runtime workload attestation; it is prior art for the identity layer, not a contribution of this paper.\cite{spiffe-spire}
+
+Recent agent-security work also overlaps materially with this architecture. TRACE treats the agent as untrusted, uses cryptographically signed policy bundles, an Interface Gateway for complete mediation, and graduated containment.\cite{trace2026} \emph{Tacked Up} explicitly frames agent security as a reference-monitor problem with access, runtime, and inference planes.\cite{tackedup2026} AEGIS applies complete mediation, tamper resistance, and verifiability to AI-generated actions.\cite{aegis2026} AWS Dogwood extends point-in-time authorization with stateful temporal policies over action histories.\cite{dogwood2026} These systems make it inappropriate to claim complete mediation, stateful authorization, signed policy, or brokered tool execution as novel by themselves.
+
+The narrower contribution here is incident-grounded placement and binding of the authorization boundary for cyber evaluations, with particular emphasis on the concrete destination used by a network effect. DNS rebinding has long been recognized as a security problem in browsers and SSRF defenses.\cite{jackson2009,owasp-ssrf} This paper does not claim to invent DNS-rebinding defense. It shows that the same mutable name-to-endpoint relationship creates a gap in agent-action authorization and makes the binding contract part of the commit-time safety specification.
+
+\begin{table}[htbp]
+\centering
+\caption{Novelty boundary relative to representative prior work. The comparison is intentionally qualitative: the cited systems differ in scope, implementation maturity, and assurance claims.}
+\small
+\begin{tabularx}{\linewidth}{L{1.05in}Y Y}
+\toprule
+\textbf{Work} & \textbf{Shared ground} & \textbf{Boundary relative to this paper} \\
+\midrule
+TRACE & Complete mediation, signed policy bundles, independent gateway enforcement, graduated containment, and evidence capture & Does not make commit-time numeric endpoint/service binding for cyber-evaluation actions the center of its assurance argument \\
+Tacked Up & Reference-monitor framing, access/runtime/inference planes, testable assurance conditions, and mediation-failure analysis & Conceptual predecessor for the control-layer framing; this paper adds incident reconstruction, a concrete commit transaction, and destination-binding semantics \\
+AEGIS & Complete mediation, tamper resistance, deterministic governance, proxy-enforced action paths, and immutable audit records & Overlaps strongly at the reference-monitor layer; this paper narrows the technical focus to cyber-evaluation authority, endpoint/service binding, and cross-run substrates \\
+AWS Dogwood & Stateful and sequence-aware authorization for agent tool calls, including temporal policy and human-approval conditions & Demonstrates modern stateful agent authorization; this paper focuses on binding the actual external effect, including the numeric network peer and service identity used at commit \\
+This paper & Complete mediation, stateful authorization, short-lived authorization objects, independent enforcement, and explicit fail-closed assumptions & Primary contribution is the incident-grounded commit contract: the exact request, current state, and concrete effect destination/service identity must remain bound through commit \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 \section{Incident Record}
 \subsection{Anthropic: open-path and scope-binding failures}
@@ -306,6 +329,8 @@ The offensive agent is not assumed to be malicious in the human sense. It is ass
 
 The threat model also includes ordinary engineering failure: misconfiguration, stale policy, overbroad identity, missing telemetry, broken abort handling, DNS changes, inconsistent parsers, and incomplete vendor controls.
 
+The assurance claim does not cover physical compromise of the trusted host, a malicious or compromised control-plane administrator, or compromise of the control plane's own software supply chain; those conditions invalidate A7 rather than becoming agent behavior to be detected. VM/container escape is in scope only insofar as the deployment claims an independent boundary that remains authoritative after workload compromise. Timing and lease checks assume a control-plane clock whose integrity the offensive plane cannot modify. Side and covert channels are not eliminated by this model and require deployment-specific analysis.
+
 \subsection{Security objectives}
 The design targets five properties:
 \begin{description}[leftmargin=1.45in,style=nextline]
@@ -322,45 +347,101 @@ Availability and task-completion performance are secondary to these safety objec
 The model is intentionally small. Its purpose is to make the architectural assumptions falsifiable.
 
 \subsection{State, requests, scope, and effects}
-Let $S$ be the set of execution states. A state $s \in S$ includes at least:
+Let $S$ be the set of execution states. For the assurance claim in this paper, a state is
 \[
-s = (e, \sigma, v, g, \beta, \delta, \rho, q)
+s=(e,\sigma,v,g,\beta,\Delta,\rho,t),
 \]
-where $e$ is the run epoch, $\sigma$ the immutable scope manifest, $v$ the policy version, $g$ a monotonic state generation, $\beta$ the remaining budgets, $\delta$ the current destination/service binding state, $\rho$ the current control-plane revocation state, and $q$ other security-relevant execution state. The generation and revocation state require integrity and monotonicity, not secrecy; observing them does not confer authorization because the offensive plane cannot forge the control-plane signature.
+where $e\in\mathbb{N}$ is the run epoch; $\sigma$ is the immutable signed scope; $v$ is the active deterministic-policy version; $g\in\mathbb{N}$ is a monotonic authorization generation; $\beta\in\mathbb{N}^{k}$ is a named vector of remaining budgets (for example, connection, authentication, byte-transfer, process, token, tool-call, and inference budgets); $\Delta$ is trusted destination-binding infrastructure state such as resolver/route/lease policy; $\rho=(\rho_e,R_{\mathrm{rev}})$ contains a monotonic revocation epoch and the set of revoked authorization identifiers/digests; and $t$ is trusted control-plane time. Security-relevant state not represented by these fields must either be added to the state or excluded from the assurance claim; there is no catch-all variable whose semantics are left unspecified.
 
-Let $R$ be the set of normalized requests. A request $r \in R$ includes operation, destination identity, protocol, parameters, data class, purpose, run identifier, and coordination domain. Let $X$ be the set of externally committed effects.
-
-For each state $s$, let $\mathcal{U}(s) \subseteq R$ be the semantic set of requests prohibited by the assurance policy at that state. This set is defined independently of the implementation that decides requests. It is the specification against which the authorization mechanism is judged.
-
-Define the authoritative decision predicate:
+Let $R$ be the set of normalized requests. A request is an explicit record
 \[
-\operatorname{Auth}_{\sigma}(s,r) \in \{0,1\}.
+r=(op,res,proto,param,data,purpose,run,coord,cost),
 \]
-It returns 1 only when the implementation judges the normalized request permitted by the signed scope and current security state, including destination binding and remaining budget. A request is \term{policy-unauthorized} at state $s$ when $r \in \mathcal{U}(s)$. Policy soundness therefore requires $r \in \mathcal{U}(s) \Rightarrow \operatorname{Auth}_{\sigma}(s,r)=0$; it is not true merely by definition.
+where $op$ is the operation, $res$ the logical resource/destination identity, $proto$ the protocol, $param$ canonical operation parameters, $data$ the data class, $purpose$ the approved purpose, $run$ the run identifier, $coord$ the coordination domain, and $cost\in\mathbb{N}^{k}$ the budget charge if the effect commits. Let $X$ be the set of externally committed effects.
+
+The scope $\sigma$ contains allow/deny rules for operations, resources, destination/service identities, data classes, purposes, coordination domains, credential classes, public-write authority, and budget ceilings. Let the independent normative specification be the deterministic conjunction
+\[
+\begin{aligned}
+\operatorname{Spec}_{\sigma}(s,r)\equiv{}&\operatorname{ScopeMatch}_{\sigma}(r)\land\operatorname{Policy}_{v}(s,r)\\
+&{}\land\operatorname{EpochMatch}(e,r)\land\operatorname{BudgetOK}(\beta,cost(r))\\
+&{}\land\operatorname{DestEligible}(\Delta,r)\land\operatorname{CoordOK}_{\sigma}(r),
+\end{aligned}
+\]
+where $\operatorname{ScopeMatch}_{\sigma}$ checks the signed operation/resource/protocol/data/purpose/public-write rules, $\operatorname{Policy}_{v}$ applies the active deterministic policy version, $\operatorname{EpochMatch}$ binds the request to the current run, $\operatorname{BudgetOK}$ is component-wise sufficiency, $\operatorname{DestEligible}$ requires a destination/service binding permitted by current trusted binding state, and $\operatorname{CoordOK}_{\sigma}$ enforces the coordination-domain rules. Implementations may realize these predicates differently, but an assurance claim must define equivalent deterministic rules. The prohibited set is therefore constructible symbolically as
+\[
+\mathcal{U}(s)=\{r\in R:\operatorname{Spec}_{\sigma}(s,r)=0\}.
+\]
+It need not be enumerated.
+
+Define
+\[
+\operatorname{Auth}_{\sigma}(s,r)\in\{0,1\}
+\]
+as the verdict produced by the implementation's deterministic authorization engine over the same normalized request and current state. Guardian and human judgments may add additional deny/escalate conditions, but they cannot turn a deterministic deny into an allow. The central policy-soundness obligation is
+\[
+\operatorname{Auth}_{\sigma}(s,r)=1\Rightarrow\operatorname{Spec}_{\sigma}(s,r)=1,
+\]
+equivalently $r\in\mathcal{U}(s)\Rightarrow\operatorname{Auth}_{\sigma}(s,r)=0$. This separates the policy specification from the code that implements it and makes disagreement testable.
+
+\subsection{Concrete network destination and service binding}
+\label{sec:concrete-binding}
+Destination binding must connect the policy decision to the endpoint that receives the effect. A hostname is a logical identifier and a DNS answer is discovery data; neither alone identifies the resource used by a socket. DNS rebinding has been studied for decades, and OWASP documents the same mutable-resolution risk in SSRF defenses, recommends checking IPv4 and IPv6 answers, and warns that redirects can bypass prior validation.\cite{jackson2009,owasp-ssrf} The following tuple is a reference-design refinement of the existing binding assumption:
+\[
+\delta_r=(o_r,f_r,i_r,p_r,t_r,\eta_r,\pi_r,\ell_r).
+\]
+Here $o_r$ is the canonical logical origin (scheme, hostname, effective origin port); $f_r$ the address family; $i_r$ the selected numeric address; $p_r$ the connection port; $t_r$ the transport; $\eta_r$ the approved service-identity verification rule; $\pi_r$ the direct or delegated route; and $\ell_r$ the binding lease and control-state reference. These fields enter the signed binding digest. The identity rule is fixed before contact, rather than being chosen from whatever certificate the peer presents. TLS reference identifiers must be constructed independently of the server's presented identifiers.\cite{rfc9525}
+
+Let $D(x)$ describe the resource actually used by an effect-producing primitive. For a network connection stage define
+\[
+D_{\mathrm{conn}}(x)=(f_x,i_x,p_x,t_x,\pi_x),
+\]
+and for an application-data stage define
+\[
+D_{\mathrm{app}}(x)=(o_x,f_x,i_x,p_x,t_x,\eta_x,\pi_x).
+\]
+Then $\operatorname{MatchDest}(D(x),\delta_r)=1$ requires exact equality of $(f,i,p,t,\pi)$ for a connection effect and, for an application effect, those fields plus the preselected logical origin $o_r$ and successful verification under the service-identity rule $\eta_r$. Resolver queries are independently authorized effects; they do not satisfy connection authorization. Non-network effect classes require analogous typed descriptors: a file effect binds an approved path/object identity and operation, a process effect binds the executable/image identity and argument digest, and a public-repository effect binds canonical repository/account identity, ref, operation, and content/change digest. Matching an identity rule is an acceptance test, not string equality with whatever identity the peer presents.
+
+The broker resolves through an independently authorized resolver path, validates all addresses eligible for selection, selects one endpoint, and passes that numeric endpoint to the connector. The connector must not re-resolve the hostname or silently choose another address. A new connection attempt, changed endpoint, redirect, proxy hop, or alternative service discovery result requires fresh authorization for the concrete action. For HTTPS, the logical hostname remains the reference identity for certificate verification and the appropriate SNI/HTTP authority; replacing a hostname with an IP must not disable identity verification.\cite{rfc9525} A CNAME is discovery input, not authority to change the approved logical origin. DNS cache lifetime or DNSSEC alone does not establish the required decision-to-use equality.
+
+Connection reuse is also an authorization decision. HTTP/2 permits reuse across more than one URI authority under protocol-specific conditions;\cite{rfc9113} that permission does not expand an evaluation's signed scope. Every request on a pooled channel must match its own authorized origin, bound peer, route and current state. A matching IP or certificate does not alone authorize a different origin.
+QUIC connection migration is treated as a destination change requiring fresh binding when the effective peer endpoint changes. TLS/QUIC early data is application data for this model: it must not be emitted until the corresponding logical origin, concrete route/peer, current state, and service-identity rule have already been authorized.
+
+For a proxy or service mesh, the socket peer can be the intermediary rather than the ultimate target. Pinning that peer proves only the local transport destination. The delegated connector must enforce the downstream binding, preserve the origin/identity rule, and provide trustworthy evidence, or the route must be denied. NAT, transparent interception, backend selection and endpoint ownership changes are part of the binding-soundness obligation; a numeric address alone cannot authenticate a physical backend.
+
+\paragraph{First-packet and staged-effect semantics.}
+DNS queries, TCP connection attempts, TLS handshakes and application payloads are distinct externally observable effects. Resolver access must be separately scoped. The numeric connection destination is authorized before the first outbound connection packet. TLS identity is then verified under the preselected rule before application data, credentials or application-triggered TLS early data can be sent. A failed certificate check can prevent the application effect, but cannot retroactively prevent the earlier handshake. Post-connect peer inspection is evidence of the socket destination, not a preconnect enforcement mechanism.
+
+\emph{At commit} means an enforcement linearization point in the authorization state machine, not two wall-clock timestamps falling within the same millisecond. Each effectful stage must validate current state and submit the exact approved primitive through a gate that serializes authorization-changing transitions. A local lock proves nothing about an independently mutable proxy or actuator. A remote mutation can complete after local submission; authorization at the receiver's later commit requires a cooperating receiver-side gate. Revocation after an authorized submission cannot retract packets already emitted.
 
 \subsection{State-bound authorization token}
-A successful decision produces a short-lived authorization object
+Let $\operatorname{Canon}(\cdot)$ be an unambiguous canonical encoding. For interoperable JSON deployments, RFC~8785 JCS is one suitable profile.\cite{rfc8785} The reference artifact in this bundle uses a stricter canonical integer/string JSON subset. Define the authorization message
 \[
-\tau = \operatorname{Sign}_{K_C}\big(H(r) \parallel e \parallel H(\sigma) \parallel v \parallel g \parallel H(\delta_r) \parallel \text{exp}\big),
+\begin{aligned}
+m=\operatorname{Canon}(&\texttt{domain},\texttt{alg},\texttt{kid},\texttt{issuer},\texttt{jti},H(r),e,H(\sigma),v,g,\\
+& H(\beta),H(\delta_r),\rho_e,\texttt{iat},\texttt{exp}),
+\end{aligned}
 \]
-where $K_C$ belongs to the independent control plane, $H(r)$ is the canonical request hash, $H(\delta_r)$ binds the concrete destination/service identity selected for the request, and $\text{exp}$ is a short expiration.
+with an explicit protocol-domain separator/version, algorithm identifier, key identifier, issuer, high-entropy single-use authorization identifier $\texttt{jti}$, current revocation epoch $\rho_e$, issuance time, and expiration. A successful decision produces
+\[
+\tau=(m,\operatorname{Sign}_{K_C}(m)).
+\]
+The security requirement is algorithm independent: only the independent control plane holds signing authority, every verifier knows the expected algorithm/key/issuer, field boundaries are canonical, and the offensive plane cannot forge or alter $\tau$. In a distributed multi-party deployment an asymmetric signature or an attested signing service is preferable to a shared verifier MAC. The companion demonstrator uses HMAC-SHA-256 only to exercise binding within one trust domain; it is not a distributed key-management design.
 
-This notation does not require a particular signature algorithm. The security requirement is that the offensive plane cannot forge or alter $\tau$ and that the commit gate can validate every bound field.
-
-\paragraph{Revocation semantics.} Revocation is a control-plane state transition, not a best-effort notification to the workload. The control plane may invalidate all outstanding authorizations by advancing the monotonic generation $g$, or invalidate a specific authorization by recording its token identifier or digest in $\rho$. The commit gate evaluates the current $g$ and $\rho$ inside the same linearizable transaction used for final authorization. A token revoked before the commit linearization point must fail closed even if its signature and expiration remain otherwise valid.
+\paragraph{Revocation and replay semantics.} The digest $H(\tau)$ is a stable authorization identifier even if no separate database key is available; the gate computes it from the presented canonical token. Targeted revocation records either $\texttt{jti}$ or $H(\tau)$ in $R_{\mathrm{rev}}$. Broader security-relevant changes advance $g$, $v$, $e$, or $\rho_e$. A successful one-shot commit atomically consumes $\texttt{jti}$ so a replay of the same authorization cannot create a second effect. Idempotent/retry semantics, if required, must be explicit in the scope rather than obtained by silently reusing a token.
 
 \subsection{Commit-time validity}
-Define $\operatorname{Valid}(s,r,\tau)=1$ only when:
+Define $\operatorname{Valid}(s,r,\tau)=1$ only when all of the following hold at the gate's linearization point:
 \begin{enumerate}
-  \item the control-plane signature verifies;
-  \item $H(r)$ matches the re-normalized request at commit;
-  \item run epoch $e$, scope digest $H(\sigma)$ and policy version $v$ match current values;
-  \item the state generation $g$ and budget state have not become stale in a way that changes authorization;
-  \item the concrete destination/service binding is still the authorized binding;
-  \item the token has not expired and its identifier/digest is not revoked in the current $\rho$.
+  \item the expected domain, algorithm, key identifier, issuer, and control-plane signature/MAC validate;
+  \item $H(r)$ equals the hash of the request re-normalized from the effect about to execute;
+  \item $e$, $H(\sigma)$, $v$, $g$, $H(\beta)$, and $\rho_e$ equal their current control-plane values exactly;
+  \item $\beta\geq cost(r)$ component-wise, and the same atomic transition that commits the effect decrements the charged budgets and advances $g$ when a budget-changing effect occurs;
+  \item $H(\delta_r)$ equals the current authorized binding, its lease remains valid, and $\operatorname{MatchDest}(D(x),\delta_r)=1$ for the effect stage being submitted;
+  \item trusted control-plane time satisfies the declared issuance/expiry policy, including a bounded explicit clock-skew allowance;
+  \item $\texttt{jti}$ and $H(\tau)$ are absent from the current revocation set and the one-shot $\texttt{jti}$ has not already been consumed.
 \end{enumerate}
 
-The commit gate must revalidate these fields and create the externally effectful resource within one linearizable authorization transaction. For a network action, for example, the broker should connect to the authorized endpoint it validated; it must not perform an unconstrained second DNS resolution after authorization.
+The commit gate revalidates these fields, evaluates $\operatorname{Auth}_{\sigma}$ over current state, consumes the authorization identifier, charges the budget, and submits exactly one effect primitive within one linearizable authorization transaction. A stale generation is never accepted merely because a later recomputation might reach the same verdict: exact generation equality is the mechanical freshness rule. For a network action, the broker connects to the selected numeric endpoint it authorized; it does not perform an unconstrained second DNS resolution after authorization. The staged network and remote-completion semantics are stated in Section~\ref{sec:concrete-binding}.
 
 Figure~\ref{fig:transaction} makes the transaction explicit.
 
@@ -372,34 +453,35 @@ Figure~\ref{fig:transaction} makes the transaction explicit.
 \end{figure}
 
 \subsection{Commit authorization invariant}
-Let $\mathcal{H}(s)$ be the history of committed external effects recorded in state $s$. For each $x \in \mathcal{H}(s)$, let $r_x$, $\tau_x$, and $s_x$ denote the request, authorization token, and commit-time state associated with that effect.
-
-The core invariant is:
+Let $\mathcal{H}(s)$ be the history of committed external effects recorded in state $s$. For each $x\in\mathcal{H}(s)$, let $r_x$, $\tau_x$, $s_x$, and $\delta_{r_x}$ denote the request, authorization object, commit-time state, and bound resource descriptor associated with that effect. The conformance invariant is
 \[
-\mathcal{I}(s) \equiv \forall x \in \mathcal{H}(s):
-\operatorname{Auth}_{\sigma}(s_x,r_x)=1 \land \operatorname{Valid}(s_x,r_x,\tau_x)=1.
+\begin{aligned}
+\mathcal{I}(s)\equiv\forall x\in\mathcal{H}(s):\quad&
+\operatorname{Spec}_{\sigma}(s_x,r_x)=1\\
+&{}\land\operatorname{Auth}_{\sigma}(s_x,r_x)=1\\
+&{}\land\operatorname{Valid}(s_x,r_x,\tau_x)=1\\
+&{}\land\operatorname{MatchDest}(D(x),\delta_{r_x})=1.
+\end{aligned}
 \]
+For an empty initial history, $\mathcal{I}(s_0)$ holds vacuously. The invariant is a specification against which an implementation is tested; it is not evidence that the deployment actually mediates every effect path.
 
-In words: every external effect in the committed history has a valid, current authorization for the exact action that committed.
-
-\subsection{Assumptions}
-The following assumptions are explicit proof obligations, not implementation details to wave away:
+\subsection{Assumptions and proof obligations}
 \begin{description}[leftmargin=0.55in]
-\item[A1.] \textbf{Complete mediation.} Only the broker/effect gate can create an external effect in $X$. This paper does not establish A1 for any deployed platform; an implementation must evidence it through an explicit inventory of effect-capable primitives, independent enforcement, and adversarial bypass testing. Adding a new tool, service, credential path, writable shared substrate, or network path invalidates prior mediation evidence until it is re-evaluated.
-\item[A2.] \textbf{Prohibited-set adequacy and policy soundness.} $\mathcal{U}(s)$ contains every request covered by the assurance claim as prohibited, and $r\in\mathcal{U}(s)$ implies $\operatorname{Auth}_{\sigma}(s,r)=0$.
-\item[A3.] \textbf{Scope and control-state integrity.} The offensive plane cannot alter or roll back the signed scope, policy, run epoch, state generation or revocation state.
-\item[A4.] \textbf{Authorization unforgeability.} The offensive plane cannot forge a valid $\tau$.
-\item[A5.] \textbf{Fresh atomic commit.} The effect gate revalidates and commits without an authorization-changing race.
-\item[A6.] \textbf{Binding soundness.} The destination used by the effect is the destination authorized by the control plane.
-\item[A7.] \textbf{Control-plane independence.} The offensive plane cannot disable, rewrite or impersonate the broker, authorization service, immutable log or recovery authority.
+\item[A1.] \textbf{Complete mediation.} Every externally visible effect covered by the assurance claim crosses the broker/effect gate before the effect's commit point. An implementation must evidence A1 through an effect-capability inventory, independent enforcement, and bypass testing.
+\item[A2.] \textbf{Specification adequacy and authorization soundness.} The signed scope/policy specification captures the prohibited requests covered by the assurance claim, and $\operatorname{Auth}_{\sigma}(s,r)=1\Rightarrow\operatorname{Spec}_{\sigma}(s,r)=1$.
+\item[A3.] \textbf{Scope, time, and control-state integrity.} The offensive plane cannot alter or roll back $\sigma$, $v$, $e$, $g$, $\beta$, $\Delta$, $\rho$, or trusted control-plane time.
+\item[A4.] \textbf{Authorization unforgeability and anti-replay.} The offensive plane cannot forge a valid $\tau$ or cause a consumed/revoked authorization identifier to validate again.
+\item[A5.] \textbf{Fresh atomic commit.} Current-state validation, deterministic authorization, replay consumption, budget charge/generation update, and submission of the bound effect occur without an authorization-changing race at the enforcement linearization point.
+\item[A6.] \textbf{Binding soundness.} Every committed effect satisfies $\operatorname{MatchDest}(D(x),\delta_{r_x})=1$. Resolver, retry, redirect, pooled-channel, migration, proxy, mesh, NAT, or intermediary behavior either preserves the authorized binding or obtains a fresh decision.
+\item[A7.] \textbf{Control-plane independence.} The offensive plane cannot disable, rewrite, or impersonate the broker, authorization service, policy/revocation state, immutable log, trusted clock, or recovery authority.
 \end{description}
 
-\subsection{Theorem 1: policy-prohibited committed effects are unreachable}
-\textbf{Theorem.} Under A1--A7, if the initial state satisfies $\mathcal{I}$ and every effect-producing transition requires $\operatorname{Auth}_{\sigma}(s,r)=1$ and $\operatorname{Valid}(s,r,\tau)=1$, then no reachable state contains an external effect whose commit-time request $r_x$ belongs to $\mathcal{U}(s_x)$.
+\subsection{Commit-Authorization Conformance Theorem}
+\textbf{Theorem.} Let $s_0$ satisfy $\mathcal{I}(s_0)$. Under A1--A7, if every effect-producing transition commits only when $\operatorname{Auth}_{\sigma}(s,r)=1$, $\operatorname{Valid}(s,r,\tau)=1$, and $\operatorname{MatchDest}(D(x),\delta_r)=1$, then every state reachable by such transitions satisfies $\mathcal{I}$; in particular, no committed effect has $r_x\in\mathcal{U}(s_x)$.
 
-\textbf{Proof sketch.} Suppose a first prohibited effect $x$ commits with $r_x\in\mathcal{U}(s_x)$. By A1, $x$ must pass the effect gate. By the transition rule and A5, the gate can commit only after validating the current request and token. By A2, $r_x\in\mathcal{U}(s_x)$ requires $\operatorname{Auth}_{\sigma}(s_x,r_x)=0$, while the commit rule requires it to equal 1. A3--A4 prevent substitution of scope/state or forgery of the authorization object; A6 binds the actual external effect to the destination authorized for $r_x$; A7 preserves the authority of these controls. The required authorization therefore cannot exist for the prohibited commit, a contradiction. $\square$
+\textbf{Proof sketch.} Induct on committed-history length. The base case has empty history. For the inductive step, assume $\mathcal{I}$ before the next effect $x$. By A1, $x$ reaches the gate. By A5, the gate evaluates the same current state that governs the effect submission. The transition premise requires current $\operatorname{Auth}_{\sigma}=1$, $\operatorname{Valid}=1$, and destination/resource match. A2 therefore yields $\operatorname{Spec}_{\sigma}=1$, equivalently $r_x\notin\mathcal{U}(s_x)$. A3--A4 exclude stale/forged/replayed authorization state, A6 binds the realized effect to the authorized resource, and A7 preserves the authority of the gate. Appending $x$ therefore preserves every conjunct of $\mathcal{I}$. $\square$
 
-The theorem is intentionally conditional. If any assumption fails, the conclusion does not follow. It does not establish that a deployed system satisfies A1--A7; it establishes the commit-authorization invariant once those proof obligations hold. The engineering burden is therefore to produce evidence for mediation completeness, policy soundness, binding, atomicity, and control-plane independence rather than to treat the theorem itself as deployment validation.
+This is a refinement/conformance result: it specifies what follows if a deployment discharges A1--A7. It does \emph{not} prove that any real system satisfies those obligations. Complete-mediation evidence, policy tests, binding tests, race testing, key/replay controls, and control-plane isolation remain empirical engineering obligations.
 
 \subsection{Counterexample 1: bypass defeats a stronger guardian}
 Let $H$ be an unmediated socket, package client, cloud SDK, browser tool, shared service, or credential path available to the agent. A request sent through $H$ never reaches the guardian or effect gate. Even a guardian that outperforms the offensive model on every benchmark cannot block an action it cannot observe or actuate against. This directly falsifies A1.
@@ -409,6 +491,28 @@ At state $s_0$, a transfer request is authorized while budget remains. Before co
 
 \subsection{Counterexample 3: monitor-only control}
 An asynchronous monitor returns a correct deny verdict after a public package, credential transfer, IAM mutation, or other irreversible effect has already committed. Detection succeeds; prevention fails. Model accuracy alone cannot repair a missing precommit hold.
+
+\subsection{Counterexample 4: hostname-only authorization is insufficient}
+\label{sec:dns-counterexample}
+Let $h$ be a logical hostname whose resolution is time-varying, $Resolve(h,t)$. Any authorization that binds only $h$ leaves the concrete endpoint underdetermined at the later effect point whenever
+\[
+Resolve(h,t_a)\neq Resolve(h,t_c).
+\]
+The classic DNS-rebinding pattern is one concrete realization. Suppose policy at authorization time observes $i_0\in\sigma_{\mathrm{net}}$, while the endpoint used at connection time is $i_1\notin\sigma_{\mathrm{net}}$. Then
+\[
+i_0\in\sigma_{\mathrm{net}},\qquad i_1\notin\sigma_{\mathrm{net}},\qquad i_0\neq i_1.
+\]
+A second DNS lookup by a downstream client is a common cause, but it is not the essence of the counterexample. The general defect is that hostname equality does not authenticate equality between the endpoint authorized and the endpoint used. A valid connector therefore binds the selected numeric address/family/port/transport and stage-appropriate service identity, then either uses that binding or obtains fresh authorization when resolution, redirect, migration, proxy/backend selection, or routing changes it.\cite{jackson2009,owasp-ssrf}
+
+\paragraph{Endpoint non-substitution lemma.}
+Fix an authorization object $\tau$ whose signed message binds $H(\delta_r)$, and suppose a conforming connector (i) submits the connection primitive using the numeric tuple $(f_r,i_r,p_r,t_r,\pi_r)$ already contained in $\delta_r$, (ii) performs no hostname resolution inside that primitive, and (iii) requires fresh authorization before using any different tuple. Then a later change in $Resolve(o_r,t)$ cannot cause that authorized connection effect to use a different numeric endpoint without a new authorization decision. The proof is direct: DNS is no longer an input to the already-bound connection primitive; any tuple inequality is rejected by condition (iii) and by $\operatorname{MatchDest}$. The live-loopback and mocked rebinding regressions in the companion artifact exercise this non-substitution property for the reference TCP probe path. This lemma is deliberately connector-local; proxies, meshes, NAT, pooled transports, and remote completion still require the delegated binding obligations stated above.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.98\linewidth,height=0.75\textheight,keepaspectratio]{figures/fig6_dns_binding.pdf}
+\caption{DNS rebinding counterexample and the required numeric binding. The example addresses illustrate an approved evaluation network and a forbidden metadata endpoint. The repaired path performs no second hostname resolution; every later connection attempt requires current authorization.}
+\label{fig:dns-binding}
+\end{figure}
 
 \subsection{Prevention, containment, and recovery latency}
 For an asynchronous path define:
@@ -425,7 +529,7 @@ T_d + T_q + T_r < T_i.
 \]
 For many high-impact actions, $T_i$ is effectively the remote commit time and can be smaller than monitor latency. Those actions require synchronous authorization. In a correctly held precommit path, timeout affects availability, not safety: if the authorization decision does not arrive within the lease window, the action is denied.
 
-\subsection{Fault decomposition without false independence}
+\subsection{Fault decomposition as qualitative risk accounting}
 Let $B$ be mediation bypass and $E_U$ a committed external effect whose request is in the prohibited set $\mathcal{U}$ at commit time. The law of total probability gives:
 \[
 \Pr(E_U)=\Pr(B)\Pr(E_U\mid B)+\Pr(\neg B)\Pr(E_U\mid \neg B).
@@ -437,23 +541,23 @@ Conditioned on no bypass, mediated failure may result from policy error, destina
 \Pr(E_U\mid \neg B) \leq \Pr\left(\bigcup_i F_i \mid \neg B\right)
 \leq \sum_i \Pr(F_i\mid \neg B).
 \]
-Multiplying assumed independent block percentages is unjustified when controls share models, parsers, telemetry, identity or infrastructure.
+This decomposition is a bookkeeping identity plus a union bound; the paper does not estimate these probabilities or claim independence. Its purpose is qualitative: to prevent a safety case from multiplying unsupported ``block rates'' when controls share models, parsers, telemetry, identity, or infrastructure.
 
-\subsection{Cross-run isolation property}
-Let $d(a)$ be the authorized coordination domain of run $a$. Let $W(a)$ be objects that $a$ can write and $R(b)$ objects that $b$ can read. If two runs are in different domains and the scope contains no explicit sharing rule, the required property is:
+\subsection{Scope-relative cross-run isolation property}
+Let $d(a)$ be the authorized coordination domain of run $a$. Let $K_{\sigma}$ be the set of writable substrates covered by the assurance claim. For each substrate $k\in K_{\sigma}$, let $W_k(a)$ be objects in $k$ that run $a$ can write and $R_k(b)$ objects in $k$ that run $b$ can read. The required property is
 \[
-d(a) \neq d(b) \land \neg \operatorname{ShareAllowed}(a,b)
-\Rightarrow W(a) \cap R(b)=\varnothing.
+\forall k\in K_{\sigma}:\quad d(a)\neq d(b)\land\neg\operatorname{ShareAllowed}_{\sigma}(a,b,k)
+\Rightarrow W_k(a)\cap R_k(b)=\varnothing.
 \]
-This property applies to files, package metadata, caches, artifact stores, databases, queues, clipboard state, environment overlays, public dead drops, and any other writable substrate. Read-only content-addressed mirrors are safer than shared writable package services.
+This scope-relative form does not pretend that the operator can isolate infrastructure it does not control. Public GitHub/PyPI-style substrates must therefore be explicitly classified by scope: read-only access can be permitted without a writable channel, while public write authority is a consequential capability that must be separately brokered. Internal files, package metadata, caches, artifact stores, databases, queues, clipboard state, environment overlays, and any public write surface included in $K_{\sigma}$ must have an enforcement mechanism that makes the property testable.
 
 \section{Reference Architecture}
 Figure~\ref{fig:architecture} separates the untrusted execution plane from authorization, effect, telemetry, and recovery planes.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.96\linewidth,height=0.74\textheight,keepaspectratio]{figures/fig6_reference_architecture.pdf}
-\caption{Reference architecture. The offensive agent never receives direct authority to create external effects. Authorization and recovery remain outside the execution plane.}
+\includegraphics[width=0.96\linewidth,height=0.74\textheight,keepaspectratio]{figures/fig7_reference_architecture.pdf}
+\caption{Reference architecture. The offensive agent never receives direct authority to create external effects. The authorization, telemetry, and recovery components form the A7 trust boundary. Solid arrows are authority/effect paths; dashed arrows are evidence or recovery/control paths and grant no agent authority.}
 \label{fig:architecture}
 \end{figure}
 
@@ -479,6 +583,19 @@ The agent should not receive a generic network namespace plus raw credentials an
 \end{lstlisting}
 
 The broker normalizes the request and owns the external capability required to execute it. Equivalent typed mediation is required for shell actions that can escape locally, cloud APIs, identity operations, package installation/publication, source-control writes, email, webhooks, browser automation, file transfer and external account creation. For dynamic services, authorization should bind a broker-resolved endpoint together with a cryptographic or policy-verifiable service identity (for example, an expected certificate/SPKI identity, workload identity, or signed service descriptor) rather than rely on a hostname or raw IP alone. Redirects, proxy hops, and any post-authorization re-resolution that changes the bound identity require a new authorization decision.
+
+\subsection{Implementation strategies for complete mediation}
+A1 is the load-bearing deployment obligation. It is not satisfied by putting a Python function in front of some tools while leaving raw sockets, browser automation, cloud SDKs, package managers, native extensions, sidecars, or alternate credentials available elsewhere. Browser tooling and cloud SDKs are especially difficult because one high-level call can fan out into DNS, redirects, authentication, storage, subprocesses, and provider-managed effects.
+
+Practical deployments can combine several layers:
+\begin{itemize}
+  \item \textbf{Language/runtime audit hooks.} CPython audit hooks can expose many events such as process creation, file access, imports, and socket activity. They are useful as observability and an additional deny layer, but native code or a compromised interpreter can bypass them, so they are not sufficient evidence for A1 by themselves.
+  \item \textbf{Kernel enforcement.} seccomp/BPF, Linux Security Modules, capability removal, namespaces, and deny-by-default network policy can prevent classes of direct syscalls. A userspace broker or dedicated connector can retain narrowly scoped authority that the workload lacks.
+  \item \textbf{Process, microVM, or VM separation.} Place the offensive workload in an environment with no ambient external authority and expose only broker RPCs whose server holds credentials and network access. This makes the broker boundary independent of the language runtime.
+  \item \textbf{Restricted host-call runtimes.} WASM/WASI-style execution can reduce the effect surface when workloads tolerate that compatibility model; only explicitly supplied host calls become capabilities.
+  \item \textbf{Independent network enforcement.} Host/cloud policy should make the broker/connector the only permitted egress principal so a hidden library or subprocess cannot silently open an alternate route.
+\end{itemize}
+No single layer proves completeness. The assurance case is an enumerated effect-surface argument plus adversarial bypass testing, and any new tool or privileged path invalidates that evidence until retested.
 
 \subsection{Deterministic policy before semantic judgment}
 Deterministic policy should reject what can be stated precisely:
@@ -516,12 +633,12 @@ Require independent human approval for actions such as:
   \item expanding scope or coordination domains.
 \end{itemize}
 
-The approval UI should show the canonical action, resolved service identity, scope clause, trajectory summary, data class, requested privilege, prior denials, budget impact, and rollback/containment plan. Human review is defense in depth, not an independent security boundary: approval cannot override a deterministic deny, expand the signed scope, or bypass commit-time revalidation. It also needs rate limits and escalation policies to prevent approval fatigue.
+The approval UI should show the canonical action, resolved numeric/service identity, immutable resource identifier where available, scope clause, content/change digest, trajectory summary, data class, requested privilege, prior denials, budget impact, and rollback/containment plan. Identity claims supplied by the agent are untrusted: for newly discovered people, repositories, accounts, or organizations, the reviewer must verify identity through an out-of-band authoritative binding before approval. This directly addresses the social-engineering weakness visible in the AISI incident. Human review is defense in depth, not an independent security boundary: approval cannot override a deterministic deny, expand the signed scope, or bypass commit-time revalidation. It also needs rate limits and escalation policies to prevent approval fatigue.
 
 \subsection{Ephemeral identity and zero standing secrets}
 Every agent instance should receive a unique, short-lived workload identity whose audience, source network, role, lifetime and delegation chain are restricted to the task. The environment should contain no production standing secrets. Discovered credentials should be treated as tainted data, not automatically usable authority.
 
-This aligns with the emerging identity problem described by NIST/NCCoE: autonomous software needs identifiable principals, explicit authorization, delegation context, auditability and revocation.\cite{nist8005,nccoe-identity}
+This aligns with the emerging identity problem described by NIST/NCCoE and with SPIFFE/SPIRE's established workload-attestation model: autonomous software needs identifiable principals, short-lived workload credentials, explicit authorization, delegation context, auditability, and revocation.\cite{nist8005,nccoe-identity,spiffe-spire}
 
 \subsection{Independent network enforcement}
 Network denial should exist at more than one layer. A sandbox-local firewall can be modified if the sandbox is compromised. AISI's hardening update describes both sandbox-level outbound blocking and an independent cloud-host network layer, plus phased escape testing.\cite{aisi-hardening} A robust design similarly separates workload policy from host/cloud enforcement and uses the broker as the only intended external connector.
@@ -553,7 +670,7 @@ The OpenAI/Hugging Face incident makes cross-run communication a first-class req
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.96\linewidth,height=0.62\textheight,keepaspectratio]{figures/fig7_cross_run_isolation.pdf}
+\includegraphics[width=0.96\linewidth,height=0.62\textheight,keepaspectratio]{figures/fig8_cross_run_isolation.pdf}
 \caption{Cross-run isolation. Separate coordination domains cannot communicate through writable infrastructure unless the signed scope explicitly enables a brokered channel.}
 \label{fig:crossrun}
 \end{figure}
@@ -573,6 +690,9 @@ Safer defaults are:
   \item logging that attributes each message to its origin run and delegated identity.
 \end{itemize}
 
+\subsection{Concrete enforcement patterns}
+The isolation property must map to platform controls. In Kubernetes, a run can receive a dedicated namespace, service account, NetworkPolicy, and RBAC policy whose writable resources are not listable/readable by other coordination domains. Object stores can allocate per-run prefixes or buckets behind short-lived identities whose policies deny cross-prefix listing and reads. Shared dependencies should be exposed through read-only content-addressed mirrors. Telemetry should use append-only per-run write paths that the workload cannot read back or enumerate. Public repositories and registries are never ``just storage'': any public write must cross the same typed broker and approval path as other consequential effects.
+
 \subsection{Public infrastructure can also become shared state}
 The AISI incident shows that public GitHub artifacts and accounts can create coordination opportunities across otherwise independent runs.\cite{aisi-incident} Cross-run isolation therefore cannot be limited to internal storage. If multiple agents can write to the same public location and later agents can discover it, public infrastructure is a shared channel. The policy must distinguish \emph{read-only public research access} from \emph{public write authority}.
 
@@ -590,20 +710,22 @@ The companion validator checks:
   \item proxy environment variables and heuristic secret-bearing environment variables;
   \item known local container-control and credential paths;
   \item non-root execution when required;
-  \item Linux effective capabilities, \code{NoNewPrivs}, and seccomp mode when required;
+  \item Linux inheritable, permitted, effective, bounding, and ambient capability masks, \code{NoNewPrivs}, seccomp mode, and reported filter count when required;
   \item an image digest supplied by the trusted orchestrator;
   \item a machine-readable attestation containing all results and explicit limitations.
 \end{itemize}
 
-The validator intentionally states that negative endpoint probes do not prove the absence of arbitrary egress and that DNS must be rebound at runtime by the broker.
+The validator intentionally states that negative endpoint probes do not prove the absence of arbitrary egress. Required-endpoint probes reuse a validated numeric address snapshot; they do not resolve the hostname again. Every eligible address in a diagnostic fallback snapshot is checked. Forbidden-endpoint probes require separate, explicit \code{probe\_cidrs}: permission to test a blocked destination is a diagnostic capability, not runtime task authority. Resolution failure or an unverifiable peer fails the diagnostic gate rather than being counted as evidence of blocked egress. TCP probes send no application payload and do not authenticate a TLS service. Runtime actions still require fresh broker-owned binding and current per-action authorization.
 
 \subsection{Runtime authorization pseudocode}
 \begin{lstlisting}[language=Python]
 def authorize_and_commit(raw_request, state):
     r = normalize(raw_request)
     snapshot = control_plane.snapshot(state.run_id)
+    # DNS is itself mediated. Select a concrete numeric endpoint.
+    plan = broker.prepare_destination_under_resolver_gate(r)
 
-    if not deterministic_policy(snapshot, r):
+    if not deterministic_policy(snapshot, r, plan):
         return DENY
 
     if not guardian.review(r, snapshot.trajectory).allow:
@@ -612,19 +734,26 @@ def authorize_and_commit(raw_request, state):
     if high_impact(r) and not human_approval(r, snapshot):
         return DENY
 
-    tau = issue_state_bound_token(r, snapshot)
+    tau = issue_state_bound_token(r, snapshot, plan)
 
     # Linearizable boundary: normalize again and re-check current state.
     with effect_gate.transaction(state.run_id) as current:
         r2 = normalize(raw_request)
-        if not token_valid(tau, r2, current):
+        if not token_valid(tau, r2, plan, current):
             return DENY
-        if not deterministic_policy(current, r2):
+        if not deterministic_policy(current, r2, plan):
             return DENY
-        return effect_gate.commit(r2, tau)
+        # No hidden DNS, redirects, proxies, or unchecked retries.
+        return effect_gate.commit_bound_primitive(r2, plan, tau)
 \end{lstlisting}
 
-The important property is not this exact code. It is that \emph{no alternate effect-capable path exists}.
+The important property is not this exact code. It is that \emph{no alternate effect-capable path exists}. The abstract commit method must be refined into separately gated resolution, connection/handshake, and application stages as described in Section~\ref{sec:concrete-binding}. The pseudocode is not an implemented HTTP/TLS broker and does not establish distributed atomicity by itself.
+
+\subsection{Executable commit-authorization demonstrator}
+The bundle includes \path{scripts/commit_authorization.py}, a dependency-free reference implementation of the state-bound token and a single-process \code{AtomicCommitGate}. It uses domain-separated HMAC-SHA-256 inside one trust domain, strict canonical JSON, exact request and binding hashes, key/issuer identifiers, run/scope/policy/generation/budget/revocation bindings, issuance/expiry checks, a high-entropy single-use \code{jti}, token-digest revocation, constant-time MAC comparison, and a replay cache. The gate serializes current-state verification, deterministic policy, replay consumption, and one callback under a lock. This exercises the conformance semantics and TOCTOU/replay tests; it is explicitly \emph{not} an OS reference monitor and provides no evidence for A1 outside that process.
+
+\subsection{Worked transaction: attempted public pull request}
+Consider the AISI action class involving a proposed malicious pull request to a real open-source project.\cite{aisi-incident} The broker first normalizes the action as, for example, \code{public\_repo\_write} over a canonical repository identity, target ref, change digest, run identifier, purpose, and coordination domain. If public writes or that repository are absent from $\sigma$, then $\operatorname{Spec}_{\sigma}=0$ and deterministic authorization denies the request; no authorization object exists and the effect gate cannot publish. If the scope exceptionally permits the action, the control plane additionally binds the immutable repository/account identity, ref and content/change digest, current budget/generation/revocation state, and independent human approval to $\tau$. Immediately before the API mutation, the gate re-normalizes the exact write, revalidates state and approval, consumes the one-shot authorization, charges the public-write budget, and submits only that bound primitive. A display name, agent-supplied identity claim, or later redirect cannot silently change the approved repository or account. This trace illustrates the specification; it is not evidence that the historical AISI harness implemented the design.
 
 \subsection{Safe termination and task solvability}
 Before release, the evaluator should verify that:
@@ -638,9 +767,9 @@ Before release, the evaluator should verify that:
 
 An impossible task is not automatically unsafe. An impossible task plus broad external authority and persistent optimization is an avoidable risk amplifier.
 
-\section{Guardian Validation and Adversarial Acceptance Testing}
+\section{Guardian Validation: Proposed Adversarial Acceptance Framework}
 \subsection{A monitor needs a safety case, not a benchmark score}
-A guardian should be evaluated against the claims required for it to contribute to safety:
+This paper does not evaluate a new guardian. The following is a proposed acceptance framework derived from the incident record and current monitoring studies; its metrics are requirements for a future deployment evaluation, not results reported here. A guardian should be evaluated against the claims required for it to contribute to safety:
 \begin{enumerate}
   \item all qualifying inference/actions are actually routed through the monitor;
   \item the monitor receives the security-relevant representation of each action;
@@ -691,6 +820,53 @@ Report at least:
 
 A high monitor score does not compensate for incomplete action coverage.
 
+\section{Reference Artifact Evaluation}
+The artifact evaluation is deliberately bounded. It validates code paths and controlled local integration; it does not claim production deployment validation, complete mediation, or a direct product benchmark against architectures whose scope differs from this validator.
+
+\subsection{Test and integration results}
+The clean bundle contains 96 discovered standard-library tests. They cover scope/posture validation, adversarial destination binding, token canonicalization and tamper cases, stale scope/policy/generation/budget/revocation state, request and endpoint substitution, replay, deterministic policy denial, and concurrent attempts to reuse one authorization. Three tests exercise the host rather than mocks: the system resolver resolves \code{localhost} to loopback addresses, a numeric 127.0.0.1 probe reaches a real ephemeral local listener without hostname re-resolution, and Linux posture fields are read from the live \code{/proc/self/status}.
+
+A 200-round concurrency stress test launched eight threads against one single-use authorization in each round. Exactly one commit occurred per round (200 total expected and observed), with zero invariant failures. This is evidence for the lock-based reference demonstrator only; it is not evidence for distributed or kernel-level atomicity.
+
+\subsection{Observed Linux posture}
+The evaluation also records three real process configurations on Linux 6.18.44 on x86\_64 / CPython 3.13.5. The current build process exposed \code{CapEff=00000000800405fb}, \code{CapBnd=00000000800405fb}, \code{NoNewPrivs=0}, and \code{Seccomp=0}; the hardened-posture gate therefore correctly does not treat the build process as contained. A child launched with \code{setpriv} dropped inheritable/permitted/effective/bounding/ambient capabilities to zero and set \code{NoNewPrivs=1}; a separate child repeated that capability drop inside a new user and network namespace. In this environment both children still reported \code{Seccomp=0}, so neither is labeled a fully hardened profile. The validator observes these kernel flags; it does not simulate whether a particular capability or seccomp filter can be bypassed.
+
+\begin{table}[htbp]
+\centering
+\caption{Controlled Linux process-posture characterization. ``Fail'' means the reference preflight would not accept the profile as satisfying its declared hardening checks; it is not a claim that the profile is exploitable.}
+\small
+\begin{tabularx}{\linewidth}{Y c c c c}
+\toprule
+\textbf{Profile} & \textbf{All Cap* zero} & \textbf{NoNewPrivs} & \textbf{Seccomp filter} & \textbf{Gate} \\
+\midrule
+Current build process & No & 0 & No & Fail \\
+Capability-dropped child & Yes & 1 & No & Fail \\
+User+network namespace + capability drop & Yes & 1 & No & Fail \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Authorization microbenchmark}
+On the same environment, 2000 in-process iterations produced the following characterization. Shared-runner scheduling produced visible high-tail outliers, so the median and percentiles are more informative than the mean alone. These values are not a production network-broker benchmark.
+\begin{table}[htbp]
+\centering
+\caption{State-bound authorization reference-artifact latency.}
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Operation} & \textbf{Median} & \textbf{Mean} & \textbf{Std. dev.} & \textbf{p95} & \textbf{p99} \\
+ & \multicolumn{5}{c}{\textbf{microseconds}} \\
+\midrule
+Issue HMAC authorization & 53.425 & 63.913 & 149.404 & 89.284 & 155.444 \\
+Verify authorization & 62.965 & 79.664 & 160.869 & 105.960 & 272.091 \\
+Atomic gate path & 79.650 & 103.131 & 295.476 & 143.156 & 339.733 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{What this evaluation does not establish}
+No public target is contacted. The Linux profiles are controlled process experiments, not three production container deployments. No guardian is benchmarked. The bundle does not reproduce TRACE, AEGIS, Dogwood, \code{kube-bench}, or \code{docker-bench-security}; those systems answer different architectural or host-hardening questions and a superficial pass/fail comparison would be misleading. A stronger next evaluation would deploy the broker and preflight gate in multiple container/microVM configurations, exercise real DNS/TLS/proxy paths, measure false accepts/rejects against a configuration corpus, and red-team effect-capable bypasses.
+
 \section{Technical Release Criteria}
 A high-risk cyber evaluation should not start until the owner can produce evidence for every critical item in Table~\ref{tab:release}.
 
@@ -708,6 +884,7 @@ Scope & Signed manifest, service bindings, operations, data classes, policy vers
 Task design & Intended solution path validated; explicit unsolved outcome; abort works & Task cannot be solved by intended route and broad authority remains \\
 Mediation & Inventory of every external effect-capable primitive and proof it is brokered & Raw socket, direct cloud SDK, registry write, browser or credential path bypasses broker \\
 Commit gate & State-bound token and commit-time revalidation tested under races & Stale token or destination re-resolution can commit \\
+Destination binding & Numeric endpoint, origin, identity rule and delegated route recorded; DNS/retry/redirect/pool traces tested & Name-to-socket mismatch; unapproved fallback or downstream destination \\
 Network & Sandbox and independent host/cloud deny-by-default egress & Any unapproved external path reachable \\
 Identity & Unique, short-lived, audience/source-bound workload identity & Standing production credential or shared high-privilege identity present \\
 Shared state & Per-run writable namespaces; authorized coordination domains documented & Agent-writable object is cross-readable without explicit scope \\
@@ -794,7 +971,7 @@ This architecture narrows the problem; it does not make the problem disappear.
 A proof based on A1 is invalid if any effect-capable channel is omitted. Browser APIs, DNS, package resolvers, IPC, kernel interfaces, shared mounts, metadata services, model-provider tools, sidecars and public artifact writes all need explicit accounting. Coverage must be continuously tested as tool surfaces change.
 
 \subsection{Destination identity is harder than an IP allowlist}
-CIDR checks are useful but insufficient for dynamic services. Secure binding may require service identities, workload certificates, pinned resolver policy, content-addressed endpoints, or broker-owned resolution. The paper does not prescribe a universal binding system.
+CIDR checks are useful but insufficient for dynamic services. Section~\ref{sec:concrete-binding} defines the concrete connector obligation while retaining an explicit service-identity requirement. The diagnostic regression suite establishes snapshot reuse in the included TCP probes; it does not validate a production TLS stack, HTTP redirects, connection coalescing, proxy/backend enforcement or distributed revocation. Those remain implementation-specific proof obligations.
 
 \subsection{Model monitoring remains probabilistic}
 Guardian accuracy can drift with model family, task, prompt, context length and adversarial adaptation. Current studies are promising but limited. AISI and METR both describe monitor vulnerabilities and important trade-offs between synchronous safety and operational cost.\cite{metr-monitor,aisi-monitoring,aisi-redteam,aisi-async}
@@ -806,7 +983,7 @@ Reviewers can miss context, be socially engineered, become fatigued, or approve 
 The theorem is not mechanized in a proof assistant and does not prove any deployed implementation meets A1--A7. No machine-checked proof or model-checking artifact (for example, TLA+) is claimed in this paper. A production program should refine the model into a state machine and model-check races, revocation, token expiry, budget updates, coordination-domain transitions and recovery operations.
 
 \subsection{The preflight validator is intentionally incomplete}
-The companion Python tool can identify a class of configuration errors. It cannot prove absence of arbitrary egress, hidden credentials, hypervisor escape, compromised host controls, or future runtime drift. Its trusted scope digest and image digest must originate from a control plane outside the workload. The executable source and tests are part of the companion bundle so readers can inspect and rerun the implementation directly; the paper does not claim a proof of validator correctness.
+The companion Python tool can identify a class of configuration errors. It reads real kernel posture fields---all Linux capability masks, \code{NoNewPrivs}, seccomp mode, and filter count where exposed---but it does \emph{not} simulate arbitrary effective capabilities, execute seccomp profiles to infer their semantics, or prove that hidden effect paths are absent. It also cannot prove absence of arbitrary egress, hidden credentials, hypervisor escape, compromised host controls, or future runtime drift. Its trusted scope digest and image digest must originate from a control plane outside the workload. The separate commit-authorization demonstrator exercises binding/replay/linearization logic but is not an OS reference monitor. The executable source, tests, and controlled evaluation results are included so readers can inspect and rerun these claims directly.
 
 \subsection{The public incident record is incomplete}
 Some exploit details, complete transcripts, indicators and affected-party identities remain non-public. Independent assessments have scoped limitations. Conclusions should be revisited as additional primary evidence appears.
@@ -823,11 +1000,14 @@ A defensible architecture therefore has a simple center of gravity:
 
 Everything else is defense in depth around that boundary. Deterministic policy constrains what can be expressed precisely. A guardian interprets trajectory and ambiguity. Humans approve exceptional trust-boundary crossings. Ephemeral identity limits blast radius. Cross-run isolation prevents shared infrastructure from turning into a swarm bus. Immutable telemetry enables reconstruction. Independent containment and recovery remain available even when the execution plane is compromised.
 
-The resulting system can still fail if its assumptions are false. That is why the assumptions should be explicit, tested, and treated as release gates. The standard should not be that an agent usually follows the story it was told. The standard should be that the architecture remains safe when it does not.
+The conformance theorem does not certify a deployment; it makes the conditions of the claim inspectable. A system can still fail whenever mediation is incomplete, authorization is unsound, binding drifts, atomicity breaks, authorization is replayed, or the control plane is compromised. Those are release obligations to test, not assumptions to hide. The destination-binding counterexample makes the same point at network granularity: the name policy approved is not enough; the effect must use the endpoint and service identity the authorization bound. The standard should not be that an agent usually follows the story it was told. The standard should be that externally visible authority remains bounded when it does not.
+
+\section*{Acknowledgments}
+The author thanks Dipankar Sarkar for the public DNS rebinding counterexample that prompted this refinement of the destination-binding contract and its adversarial regression tests.
 
 \appendix
 \section{Companion Preflight Validator}
-The publication bundle includes \path{scripts/agent_eval_preflight.py}, a dependency-free Python 3 validator, plus \path{tests/test_preflight.py} and an example scope manifest. The test suite contains 12 unit tests covering expiration, route breadth, digest mismatch, wildcard targets, destination binding, root execution, Linux hardening and image binding.
+The publication bundle includes \path{scripts/agent_eval_preflight.py}, the state-bound authorization demonstrator \path{scripts/commit_authorization.py}, \path{tests/test_preflight.py}, \path{tests/test_destination_binding.py}, \path{tests/test_commit_authorization.py}, \path{tests/test_live_loopback.py}, and an example scope manifest. The clean suite contains 96 discovered tests. The destination-binding regressions use controlled mocks to force resolution races and invalid peers, while the live-loopback tests use the system resolver and a real ephemeral TCP listener. Token tests cover canonicalization, request/destination substitution, policy-state changes, revocation, expiration, replay, and concurrent reuse. The bundle still does not contact a public target.
 
 \subsection{Operational invocation}
 The trusted orchestrator computes the SHA-256 of the approved scope outside the offensive workload and supplies it as an argument. It also supplies the immutable runtime image digest.
@@ -845,10 +1025,12 @@ python3 scripts/agent_eval_preflight.py "$SCOPE" \
 The example manifest intentionally uses placeholder internal names. A real deployment must replace them and should validate the scope through an external signature-verification service before the workload starts.
 
 \subsection{Security limitations emitted by the validator}
-The attestation itself records four limitations so downstream automation cannot silently convert a preflight pass into a claim of proof:
+The attestation itself records explicit limitations so downstream automation cannot silently convert a preflight pass into a claim of proof:
 \begin{enumerate}
   \item negative endpoint probes do not prove absence of all egress;
-  \item DNS can change, so the runtime broker must bind and revalidate the committed destination;
+  \item validated numeric probe snapshots do not replace fresh runtime authorization;
+  \item TCP reachability and peer inspection do not authenticate a service or prove proxy/backend routing;
+  \item Linux capability/\code{NoNewPrivs}/seccomp checks observe kernel-reported state; they do not simulate capability or filter behavior and do not prove complete mediation;
   \item environment-secret detection is heuristic;
   \item the process can be compromised together with the workload, so signature/image trust roots must remain outside it.
 \end{enumerate}
@@ -860,12 +1042,17 @@ The source bundle contains:
   \item \code{figures/*.dot} - Graphviz source for every architecture/incident diagram;
   \item \code{figures/*.pdf} - vector-rendered figures used by the paper;
   \item \code{scripts/agent\_eval\_preflight.py} - fail-closed preflight validator;
-  \item \code{tests/test\_preflight.py} - standard-library unit tests;
+  \item \code{scripts/commit\_authorization.py} - canonical state-bound authorization and atomic in-process gate demonstrator;
+  \item \code{tests/test\_preflight.py} - posture/scope tests;
+  \item \code{tests/test\_destination\_binding.py} - adversarial numeric-probe regressions;
+  \item \code{tests/test\_commit\_authorization.py} - tamper, replay, freshness, binding, and concurrency tests;
+  \item \code{tests/test\_live\_loopback.py} - real resolver/socket loopback integration tests;
+  \item \code{evaluation/run\_evaluation.py} and \code{evaluation/results.json} - controlled process characterization and microbenchmarks;
   \item \code{examples/agent\_eval\_scope.example.json} - example scope manifest;
   \item \code{README.md}, \code{CITATION.cff}, and license files.
 \end{itemize}
 
-Rebuild the figures with Graphviz and the paper with \code{latexmk -pdf}. Run tests with \code{python3 -m unittest discover -s tests -v}. The publication bundle intentionally contains no exploit payloads, live credentials, target indicators, or undisclosed incident artifacts.
+Rebuild the figures with Graphviz and the paper with \code{latexmk -xelatex}. Run tests with \code{python3 -m unittest discover -s tests -v}. The publication bundle intentionally contains no exploit payloads, live credentials, target indicators, or undisclosed incident artifacts.
 
 \newpage
 \phantomsection
@@ -904,6 +1091,32 @@ Rebuild the figures with Graphviz and the paper with \code{latexmk -pdf}. Run te
 \bibitem{aisi-async} UK AI Security Institute, ``Stress-testing asynchronous monitoring of AI coding agents,'' December 16, 2025. \url{https://www.aisi.gov.uk/blog/stress-testing-asynchronous-monitoring-of-ai-coding-agents}
 
 \bibitem{aisi-multiagent} O. Makins, O. Angelini, Z. Shams, and M. Phuong, ``Multi-Agent AI Control: Distributed Attacks Hamper Per-Instance Monitors,'' UK AI Security Institute, July 8, 2026. \url{https://www.aisi.gov.uk/research/multi-agent-ai-control-distributed-attacks-hamper-per-instance-monitors}
+\bibitem{owasp-ssrf} OWASP, \emph{Server-Side Request Forgery Prevention Cheat Sheet}, accessed October 3, 2026. \url{https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html}
+
+\bibitem{rfc9525} P. Saint-Andre and R. Salz, \emph{Service Identity in TLS}, RFC 9525, November 2023. \url{https://www.rfc-editor.org/rfc/rfc9525.html}
+
+\bibitem{rfc9113} M. Thomson and C. Benfield, \emph{HTTP/2}, RFC 9113, June 2022, Section 9.1.1. \doiurl{10.17487/RFC9113}
+
+\bibitem{anderson1972} J. P. Anderson, \emph{Computer Security Technology Planning Study}, ESD-TR-73-51, Vol. II, October 1972.
+
+\bibitem{saltzer1975} J. H. Saltzer and M. D. Schroeder, ``The Protection of Information in Computer Systems,'' \emph{Proceedings of the IEEE}, vol. 63, no. 9, pp. 1278--1308, 1975. \doiurl{10.1109/PROC.1975.9939}
+
+\bibitem{hardy1988} N. Hardy, ``The Confused Deputy (or why capabilities might have been invented),'' \emph{ACM SIGOPS Operating Systems Review}, vol. 22, no. 4, pp. 36--38, 1988. \doiurl{10.1145/54289.871709}
+
+\bibitem{spiffe-spire} SPIFFE Project, ``SPIRE Concepts and Workload Attestation,'' accessed October 3, 2026. \url{https://spiffe.io/docs/latest/spire-about/spire-concepts/}
+
+\bibitem{jackson2009} C. Jackson, A. Barth, A. Bortz, W. Shao, and D. Boneh, ``Protecting Browsers from DNS Rebinding Attacks,'' \emph{ACM Transactions on the Web}, vol. 3, no. 1, 2009. \doiurl{10.1145/1462148.1462150}
+
+\bibitem{rfc8785} A. Rundgren, B. Jordan, and S. Erdtman, \emph{JSON Canonicalization Scheme (JCS)}, RFC 8785, June 2020. \url{https://www.rfc-editor.org/rfc/rfc8785.html}
+
+\bibitem{trace2026} E. Calboreanu, ``TRACE: A Governance-First Execution Framework Providing Architectural Assurance for Autonomous AI Operations,'' February 10, 2026. \doiurl{10.5281/zenodo.18600707}
+
+\bibitem{tackedup2026} S. M. Farr, \emph{Tacked Up: Harnessing Agentic AI}, May 31, 2026. \doiurl{10.5281/zenodo.20471175}
+
+\bibitem{aegis2026} K. Tannenbaum, ``AEGIS Reference Monitor Model: Architectural Enforcement \& Governance of Intelligent Systems,'' AEGIS Initiative, March 6, 2026. \url{https://github.com/aegis-initiative/aegis-governance/blob/main/docs/architecture/REFERENCE_MONITOR_MODEL.md}
+
+\bibitem{dogwood2026} M. Brooker, J. Tassarotti, and J.-B. Tristan, ``Introducing Dogwood: runtime verification for AI agents,'' AWS Open Source Blog, August 6, 2026. \url{https://aws.amazon.com/blogs/opensource/introducing-dogwood-runtime-verification-for-ai-agents/}
+
 \end{thebibliography}
 
 \vfill

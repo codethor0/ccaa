@@ -5,7 +5,6 @@ BUILD_DIR ?= build
 FIGURE_DOTS := $(wildcard figures/*.dot)
 FIGURE_PDFS := $(FIGURE_DOTS:.dot=.pdf)
 PAPER := $(BUILD_DIR)/paper.pdf
-PUBLIC_PDF := Containing-Cyber-Capable-AI-Agents.pdf
 
 .PHONY: all figures paper test check clean
 
@@ -18,8 +17,7 @@ figures/%.pdf: figures/%.dot
 
 paper: figures
 	mkdir -p $(BUILD_DIR)
-	$(LATEXMK) -pdf -interaction=nonstopmode -halt-on-error -outdir=$(BUILD_DIR) paper.tex
-	cp $(PAPER) $(PUBLIC_PDF)
+	$(LATEXMK) -xelatex -interaction=nonstopmode -halt-on-error -outdir=$(BUILD_DIR) paper.tex
 
 test:
 	$(PYTHON) -m unittest discover -s tests -v

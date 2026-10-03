@@ -47,7 +47,7 @@ jobs:
           for source in figures/*.dot; do
             dot -Tsvg "$source" -o "/tmp/ccaa-figures/$(basename "${source%.dot}").svg"
           done
-          test "$(find /tmp/ccaa-figures -name '*.svg' | wc -l)" -eq 7
+          test "$(find /tmp/ccaa-figures -name '*.svg' | wc -l)" -eq 8
 
       - name: Validate repository metadata and release integrity
         if: github.event_name != 'pull_request'
