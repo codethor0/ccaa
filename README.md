@@ -1,5 +1,10 @@
 # Containing Cyber-Capable AI Agents
 
+[![Reproducibility](https://github.com/codethor0/ccaa/actions/workflows/reproducibility.yml/badge.svg?branch=main)](https://github.com/codethor0/ccaa/actions/workflows/reproducibility.yml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23113152.svg)](https://doi.org/10.5281/zenodo.23113152)
+[![Paper License](https://img.shields.io/badge/paper-CC%20BY%204.0-lightgrey.svg)](LICENSE-PAPER.md)
+[![Code License](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE-CODE)
+[![ORCID](https://img.shields.io/badge/ORCID-0009--0001--6573--385X-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0009-0001-6573-385X)
 **Incident Evidence, Formal Safety Conditions, and a Reference Architecture for Bounded Autonomous Cyber Evaluation**
 
 **Thor Thor**<br>
