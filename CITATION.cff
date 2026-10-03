@@ -7,7 +7,7 @@ authors:
     given-names: "Thor"
     affiliation: "Independent Open-Source Researcher, THOR-SEC"
     orcid: "https://orcid.org/0009-0001-6573-385X"
-date-released: "2026-10-02"
+date-released: "2026-10-03"
 url: "https://codethor0.github.io/thor-sec/"
 preferred-citation:
   type: generic
@@ -22,6 +22,6 @@ preferred-citation:
   day: 2
   identifiers:
     - type: doi
-      value: "10.5281/zenodo.23113152"
+      value: "10.5281/zenodo.23124432"
     - type: url
       value: "https://github.com/codethor0/ccaa"

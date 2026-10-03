@@ -9,13 +9,18 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DATE = "2026-10-02"
+DATE = "2026-10-03"
 TITLE = (
     "Containing Cyber-Capable AI Agents: Incident Evidence, Formal Safety "
     "Conditions, and a Reference Architecture for Bounded Autonomous Cyber Evaluation"
 )
 ORCID = "0009-0001-6573-385X"
-EXPECTED_PDF_SHA256 = "0d11db683fe9f9eed585eb29854b02940bdf056e21d7a00ce4ce6e106460db1d"
+EXPECTED_PDF_SHA256 = "59074a5a1996a8851617a0d618f4a13df361c5bc1f19c487999f93d22f69cff4"
+PREVIOUS_PDF_SHA256 = "0d11db683fe9f9eed585eb29854b02940bdf056e21d7a00ce4ce6e106460db1d"
+CURRENT_DOI = "10.5281/zenodo.23124432"
+PREVIOUS_DOI = "10.5281/zenodo.23113152"
+CURRENT_RECORD_ID = "23124432"
+PREVIOUS_RECORD_ID = "23113152"
 
 REQUIRED = [
     "paper.tex",
@@ -38,6 +43,7 @@ REQUIRED = [
     "evaluation/results.json",
     "publication/manifest.json",
     "publication/zenodo-23113152/Containing-Cyber-Capable-AI-Agents.pdf",
+    "publication/zenodo-23124432/Containing-Cyber-Capable-AI-Agents.pdf",
     "publication/dns-rebinding-trace.json",
     "examples/agent_eval_scope.example.json",
     ".github/workflows/reproducibility.yml",
@@ -78,28 +84,31 @@ def main() -> None:
     manifest = json.loads((ROOT / "publication/manifest.json").read_text())
 
 
-    pdf_sha256 = hashlib.sha256(
-        (ROOT / "Containing-Cyber-Capable-AI-Agents.pdf").read_bytes()
+    pdf_sha256 = hashlib.sha256((ROOT / "Containing-Cyber-Capable-AI-Agents.pdf").read_bytes()).hexdigest()
+    current_archived_sha256 = hashlib.sha256(
+        (ROOT / "publication/zenodo-23124432/Containing-Cyber-Capable-AI-Agents.pdf").read_bytes()
     ).hexdigest()
-    archived_sha256 = hashlib.sha256(
+    previous_archived_sha256 = hashlib.sha256(
         (ROOT / "publication/zenodo-23113152/Containing-Cyber-Capable-AI-Agents.pdf").read_bytes()
     ).hexdigest()
-    require(archived_sha256 == EXPECTED_PDF_SHA256, "archived published PDF SHA-256 mismatch")
-    require(manifest["published"]["sha256"] == EXPECTED_PDF_SHA256, "published manifest hash mismatch")
-    require(manifest["published"]["doi"] == "10.5281/zenodo.23113152", "published DOI mismatch")
-    require(manifest["candidate"]["pdf"] == "Containing-Cyber-Capable-AI-Agents.pdf", "candidate PDF path mismatch")
-    require(manifest["candidate"]["sha256"] == pdf_sha256, "candidate PDF SHA-256 mismatch")
-    require(manifest["status"] == "prepublication" and manifest["candidate"]["doi"] is None,
-            "prepublication manuscript must not be labeled as already deposited")
-    require(pdf_sha256 != archived_sha256, "candidate PDF still contains the old published PDF")
+    require(pdf_sha256 == EXPECTED_PDF_SHA256, "current root PDF SHA-256 mismatch")
+    require(current_archived_sha256 == EXPECTED_PDF_SHA256, "current archived PDF SHA-256 mismatch")
+    require(previous_archived_sha256 == PREVIOUS_PDF_SHA256, "previous archived PDF SHA-256 mismatch")
+    require(manifest["status"] == "published", "publication manifest is not published")
+    require(manifest["published"]["doi"] == CURRENT_DOI, "current published DOI mismatch")
+    require(manifest["published"]["sha256"] == EXPECTED_PDF_SHA256, "current published manifest hash mismatch")
+    require(manifest["published"]["pdf"] == f"publication/zenodo-{CURRENT_RECORD_ID}/Containing-Cyber-Capable-AI-Agents.pdf", "current archive path mismatch")
+    previous = manifest.get("previous_publications", [])
+    require(any(x.get("doi") == PREVIOUS_DOI and x.get("sha256") == PREVIOUS_PDF_SHA256 for x in previous),
+            "previous publication provenance missing")
 
     readme_markers = (
         "actions/workflows/reproducibility.yml/badge.svg?branch=main",
-        "zenodo.org/badge/DOI/10.5281/zenodo.23113152.svg",
+        "zenodo.org/badge/DOI/10.5281/zenodo.23124432.svg",
         "paper-CC%20BY%204.0",
         "code-MIT",
         "0009--0001--6573--385X",
-        "https://doi.org/10.5281/zenodo.23113152",
+        "https://doi.org/10.5281/zenodo.23124432",
     )
     for marker in readme_markers:
         require(marker in readme, f"README publication marker missing: {marker}")
@@ -113,8 +122,8 @@ def main() -> None:
     require("guardian's safety case" in tex, "guardian safety-case boundary missing")
     for marker in ("MatchDest", "sec:dns-counterexample", "rfc9525", "rfc9113", "owasp-ssrf", "Dipankar Sarkar"):
         require(marker in tex, f"destination-binding revision missing: {marker}")
-    require("Current prepublication manuscript" in readme and "publication/manifest.json" in readme,
-            "README must distinguish current manuscript from archived publication")
+    require("Current archived publication" in readme and "publication/manifest.json" in readme,
+            "README must identify the current archived publication")
     mediation_sentence = "Every consequential external effect is required to cross an independent gate"
     require(mediation_sentence in tex, "paper abstract mediation statement missing")
     require(mediation_sentence in abstract, "abstract.txt mediation statement missing")
@@ -141,7 +150,7 @@ def main() -> None:
     require(zenodo["title"] == TITLE, "Zenodo title mismatch")
     require(zenodo["license"] == "cc-by-4.0", "Zenodo paper license mismatch")
     require(zenodo["publication_type"] == "preprint", "Zenodo publication type mismatch")
-    require("doi" not in zenodo and "prereserve_doi" not in zenodo, "prepublication Zenodo metadata must not invent a DOI")
+    require("doi" not in zenodo and "prereserve_doi" not in zenodo, "Zenodo metadata template must not hard-code an assigned DOI")
     require(zenodo["creators"][0]["orcid"] == ORCID, "Zenodo ORCID mismatch")
 
     require(f'date-released: "{DATE}"' in cff, "CFF release date mismatch")
@@ -176,9 +185,9 @@ def main() -> None:
 
     print("RELEASE SURFACE CHECK: PASS")
     tests = unittest.defaultTestLoader.discover(str(ROOT / "tests")).countTestCases()
-    print(f"figures={len(FIGURES)} tests={tests} status=prepublication "
-          "published_doi=10.5281/zenodo.23113152 "
-          "candidate_and_published_pdf_sha256=verified")
+    print(f"figures={len(FIGURES)} tests={tests} status=published "
+          f"published_doi={CURRENT_DOI} "
+          "current_and_previous_pdf_sha256=verified")
 
 
 if __name__ == "__main__":
