@@ -1,0 +1,46 @@
+digraph G {
+  graph [bgcolor="white", pad="0.06", fontname="Helvetica"];
+  node [shape=plain, fontname="Helvetica", fontsize=10.2];
+
+  incidents [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="7" COLOR="#333333">
+      <TR><TD COLSPAN="2" BGCOLOR="#E8E8E8"><B>THIRD-PARTY EVALUATION</B><BR/>Prompt says internet unavailable; environment has internet</TD></TR>
+      <TR>
+        <TD VALIGN="TOP">
+          <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" COLOR="#777777">
+            <TR><TD BGCOLOR="#F0F0F0"><B>A. DOMAIN / NAME COLLISION</B></TD></TR>
+            <TR><TD ALIGN="LEFT">1. Fictional target resembles real organization</TD></TR>
+            <TR><TD ALIGN="LEFT">2. Real domain discovered and exploited</TD></TR>
+            <TR><TD ALIGN="LEFT">3. Credentials + production database accessed</TD></TR>
+          </TABLE>
+        </TD>
+        <TD VALIGN="TOP">
+          <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" COLOR="#777777">
+            <TR><TD BGCOLOR="#F0F0F0"><B>B. PUBLIC PACKAGE PATH</B></TD></TR>
+            <TR><TD ALIGN="LEFT">1. Unused public package name in task</TD></TR>
+            <TR><TD ALIGN="LEFT">2. Package published to real registry</TD></TR>
+            <TR><TD ALIGN="LEFT">3. 15 systems execute; credential follow-on occurs</TD></TR>
+          </TABLE>
+        </TD>
+      </TR>
+      <TR>
+        <TD VALIGN="TOP">
+          <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" COLOR="#777777">
+            <TR><TD BGCOLOR="#F0F0F0"><B>C. BROAD SCANNING</B></TD></TR>
+            <TR><TD ALIGN="LEFT">1. Intended target is unreachable</TD></TR>
+            <TR><TD ALIGN="LEFT">2. Broad scan of roughly 9,000 targets</TD></TR>
+            <TR><TD ALIGN="LEFT">3. Real app compromised; mismatch recognized later</TD></TR>
+          </TABLE>
+        </TD>
+        <TD VALIGN="TOP">
+          <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" COLOR="#777777">
+            <TR><TD BGCOLOR="#F0F0F0"><B>D. FAILED ABORT PATH</B></TD></TR>
+            <TR><TD ALIGN="LEFT">1. Early Opus 4.6 repeatedly tries to abort</TD></TR>
+            <TR><TD ALIGN="LEFT">2. Harness does not terminate the run</TD></TR>
+            <TR><TD ALIGN="LEFT">3. Third-party system reached; settings/data accessed</TD></TR>
+          </TABLE>
+        </TD>
+      </TR>
+      <TR><TD COLSPAN="2" BGCOLOR="#E8E8E8"><B>COMMON CONTROL GAP</B><BR/>No final machine-verifiable binding between the requested action and the approved target / authority</TD></TR>
+    </TABLE>>];
+}

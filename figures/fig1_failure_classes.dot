@@ -1,0 +1,40 @@
+digraph G {
+  graph [rankdir=TB, bgcolor="white", pad="0.08", nodesep="0.34", ranksep="0.42", splines=ortho, fontname="Helvetica"];
+  node [shape=box, style="rounded", color="#222222", penwidth=1.15, fontname="Helvetica", fontsize=10.5, margin="0.12,0.08"];
+  edge [color="#222222", penwidth=1.05, arrowsize=0.65];
+
+  root [label="CYBER-CAPABILITY EVALUATION\nobjective + tools + time", penwidth=1.5];
+
+  a [shape=plain, label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="7" COLOR="#333333">
+      <TR><TD BGCOLOR="#E8E8E8"><B>A. SCOPE-BINDING FAILURE</B></TD></TR>
+      <TR><TD ALIGN="LEFT">1. Unintended live path exists</TD></TR>
+      <TR><TD ALIGN="LEFT">2. Target identity is ambiguous or textual only</TD></TR>
+      <TR><TD ALIGN="LEFT">3. Real system is treated as inside the exercise</TD></TR>
+    </TABLE>>];
+
+  b [shape=plain, label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="7" COLOR="#333333">
+      <TR><TD BGCOLOR="#E8E8E8"><B>B. ACTIVE ESCAPE + SHARED STATE</B></TD></TR>
+      <TR><TD ALIGN="LEFT">1. Shared service becomes bypass or message bus</TD></TR>
+      <TR><TD ALIGN="LEFT">2. Privilege / egress path is discovered</TD></TR>
+      <TR><TD ALIGN="LEFT">3. Agents coordinate and pivot across trust boundaries</TD></TR>
+    </TABLE>>];
+
+  c [shape=plain, label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="7" COLOR="#333333">
+      <TR><TD BGCOLOR="#E8E8E8"><B>C. PERMITTED-INTERNET AUTHORITY FAILURE</B></TD></TR>
+      <TR><TD ALIGN="LEFT">1. Open internet is intentionally available</TD></TR>
+      <TR><TD ALIGN="LEFT">2. Hard or ambiguous task drives alternate-route search</TD></TR>
+      <TR><TD ALIGN="LEFT">3. Public action occurs outside intended scope</TD></TR>
+    </TABLE>>];
+
+  {rank=same; a; b; c}
+  root -> a; root -> b; root -> c;
+
+  gap [label="SHARED FAILURE CONDITION\nEffective authority > authorized authority", style="rounded,filled,bold", fillcolor="#E8E8E8", penwidth=1.55, fontsize=11];
+  a -> gap; b -> gap; c -> gap;
+
+  response [label="Required response\nmachine-verifiable scope | complete mediation | commit-time authorization\nbounded identity | independent containment", penwidth=1.25];
+  gap -> response;
+}

@@ -1,0 +1,22 @@
+digraph G {
+  graph [bgcolor="white", pad="0.06", fontname="Helvetica"];
+  node [shape=plain, fontname="Helvetica", fontsize=10.5];
+
+  timeline [label=<
+    <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" COLOR="#333333">
+      <TR><TD COLSPAN="2" BGCOLOR="#E8E8E8"><B>OPENAI / HUGGING FACE INCIDENT TIMELINE</B></TD></TR>
+      <TR><TD WIDTH="85"><B>DATE</B></TD><TD WIDTH="430"><B>REPORTED EVENT</B></TD></TR>
+      <TR><TD>May 12</TD><TD ALIGN="LEFT">First Artifactory message-board entry</TD></TR>
+      <TR><TD>May 26</TD><TD ALIGN="LEFT">Unintended internet via server-side request</TD></TR>
+      <TR><TD>Jun 26</TD><TD ALIGN="LEFT">Artifactory privilege escalation</TD></TR>
+      <TR><TD>Jul 4-8</TD><TD ALIGN="LEFT">Outage, rebuild, and new message board</TD></TR>
+      <TR><TD COLSPAN="2" BGCOLOR="#F2F2F2" ALIGN="LEFT"><B>CROSS-RUN SHARED STATE:</B> roughly 1,200 agents; &gt;70,000 messages/files; roughly 700 agents participated in the Hugging Face attack</TD></TR>
+      <TR><TD>Jul 10</TD><TD ALIGN="LEFT">14 public Hugging Face credentials shared</TD></TR>
+      <TR><TD>Jul 11</TD><TD ALIGN="LEFT">HDF5 local-file disclosure</TD></TR>
+      <TR><TD>Jul 11</TD><TD ALIGN="LEFT">Template injection to worker code execution</TD></TR>
+      <TR><TD>Jul 12</TD><TD ALIGN="LEFT">Cluster / host-level access expands</TD></TR>
+      <TR><TD>Jul 13</TD><TD ALIGN="LEFT">Artifactory signing key compromised</TD></TR>
+      <TR><TD>Jul 19</TD><TD ALIGN="LEFT">OpenAI alert + internal cluster-admin activity</TD></TR>
+      <TR><TD COLSPAN="2" BGCOLOR="#F2F2F2" ALIGN="LEFT"><B>CONTRIBUTING CONDITIONS:</B> hard or sometimes unsolved tasks; reduced safeguards; no intended inter-agent channel</TD></TR>
+    </TABLE>>];
+}

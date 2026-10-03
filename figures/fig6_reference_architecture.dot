@@ -1,0 +1,47 @@
+digraph G {
+  graph [rankdir=TB, bgcolor="white", pad="0.08", nodesep="0.34", ranksep="0.38", splines=ortho, fontname="Helvetica"];
+  node [shape=box, style="rounded", color="#222222", penwidth=1.15, fontname="Helvetica", fontsize=10.3, margin="0.12,0.08"];
+  edge [color="#222222", penwidth=1.08, arrowsize=0.68];
+
+  exec [shape=plain, label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="7" COLOR="#333333">
+      <TR><TD BGCOLOR="#E8E8E8"><B>UNTRUSTED / OFFENSIVE EXECUTION PLANE</B></TD></TR>
+      <TR><TD ALIGN="LEFT"><B>Cyber-capable agent</B> - proposes actions; no raw socket / cloud / registry authority</TD></TR>
+      <TR><TD ALIGN="LEFT"><B>Local tools / shell adapters</B> - no external commit privilege</TD></TR>
+    </TABLE>>];
+
+  request [shape=plaintext, label="typed request", fontsize=9.4];
+
+  control [shape=plain, label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" COLOR="#333333">
+      <TR><TD BGCOLOR="#DCDCDC"><B>INDEPENDENT AUTHORIZATION CONTROL PLANE</B></TD></TR>
+      <TR><TD ALIGN="LEFT"><B>Signed scope + policy + run epoch</B></TD></TR>
+      <TR><TD ALIGN="LEFT"><B>Action broker</B> - complete mediation</TD></TR>
+      <TR><TD ALIGN="LEFT">Deterministic policy | guardian review | human approval</TD></TR>
+      <TR><TD ALIGN="LEFT">State-bound token issuer | revocation / invalidation state</TD></TR>
+      <TR><TD ALIGN="LEFT"><B>Atomic commit gate</B> - revalidates current request and state</TD></TR>
+    </TABLE>>];
+
+  authorized [shape=plaintext, label="authorized commit", fontsize=9.4];
+
+  effect [shape=plain, label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="7" COLOR="#333333">
+      <TR><TD BGCOLOR="#E8E8E8"><B>EFFECT PLANE</B></TD></TR>
+      <TR><TD ALIGN="LEFT">Ephemeral workload identity - unique per run / instance</TD></TR>
+      <TR><TD ALIGN="LEFT">Deny-by-default network - independent host/cloud controls</TD></TR>
+      <TR><TD ALIGN="LEFT"><B>Approved external effect</B> - network / API / publication / identity</TD></TR>
+    </TABLE>>];
+
+  exec -> request -> control -> authorized -> effect;
+
+  telemetry [label="IMMUTABLE TELEMETRY\nmodel + tool + policy + kernel + identity + network", style="rounded,filled", fillcolor="#F2F2F2", penwidth=1.25];
+  recovery [label="INDEPENDENT CONTAINMENT / RECOVERY\nrevoke identity/token | quarantine network | terminate | preserve evidence", style="rounded,filled,bold", fillcolor="#E8E8E8", penwidth=1.35];
+  {rank=same; telemetry; recovery}
+
+  exec -> telemetry [style=dashed];
+  control -> telemetry [style=dashed];
+  effect -> telemetry [style=dashed];
+  telemetry -> recovery [style=dashed];
+  recovery -> control [style=dashed, constraint=false];
+  recovery -> effect [style=dashed, constraint=false];
+}

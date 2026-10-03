@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+/build/*
+!/build/.gitkeep
+preflight-attestation.json
+.DS_Store
+paper.log
+paper.txt

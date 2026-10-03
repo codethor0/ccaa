@@ -1,0 +1,45 @@
+name: Reproducibility
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "23 14 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run validator unit tests
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -v
+
+      - name: Validate publication surface
+        run: |
+          set -euo pipefail
+          python3 scripts/check_release.py
+
+      - name: Validate Graphviz sources
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends graphviz
+          mkdir -p /tmp/ccaa-figures
+          for source in figures/*.dot; do
+            dot -Tsvg "$source" -o "/tmp/ccaa-figures/$(basename "${source%.dot}").svg"
+          done
+          test "$(find /tmp/ccaa-figures -name '*.svg' | wc -l)" -eq 7

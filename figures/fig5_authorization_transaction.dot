@@ -1,0 +1,38 @@
+digraph G {
+  graph [rankdir=TB, bgcolor="white", pad="0.08", nodesep="0.34", ranksep="0.36", splines=ortho, fontname="Helvetica"];
+  node [shape=box, style="rounded", color="#222222", penwidth=1.15, fontname="Helvetica", fontsize=10.4, margin="0.12,0.08"];
+  edge [color="#222222", penwidth=1.05, arrowsize=0.65];
+
+  prepare [shape=plain, label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" COLOR="#333333">
+      <TR><TD BGCOLOR="#E8E8E8"><B>REQUEST PREPARATION</B></TD></TR>
+      <TR><TD ALIGN="LEFT">1. PROPOSE - typed request r</TD></TR>
+      <TR><TD ALIGN="LEFT">2. NORMALIZE - operation, destination, data class</TD></TR>
+      <TR><TD ALIGN="LEFT">3. SNAPSHOT - current scope + state generation</TD></TR>
+    </TABLE>>];
+
+  decide [shape=plain, label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" COLOR="#333333">
+      <TR><TD BGCOLOR="#E8E8E8"><B>AUTHORIZATION DECISION</B></TD></TR>
+      <TR><TD ALIGN="LEFT">4. DETERMINISTIC POLICY - identity, operation, budget</TD></TR>
+      <TR><TD ALIGN="LEFT">5. GUARDIAN - trajectory + ambiguity review</TD></TR>
+      <TR><TD ALIGN="LEFT">6. HUMAN GATE - high-impact trust-boundary crossings</TD></TR>
+    </TABLE>>];
+
+  commit [shape=plain, label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" COLOR="#333333">
+      <TR><TD BGCOLOR="#DCDCDC"><B>STATE-BOUND COMMIT</B></TD></TR>
+      <TR><TD ALIGN="LEFT">7. AUTHORIZE - short-lived token binds request + current state</TD></TR>
+      <TR><TD ALIGN="LEFT"><B>8. ATOMIC COMMIT GATE</B> - re-normalize and revalidate request, destination, policy,<BR/>generation, budget, and revocation state</TD></TR>
+      <TR><TD ALIGN="LEFT">9. EXECUTE - ephemeral identity + deny-by-default network</TD></TR>
+    </TABLE>>];
+
+  prepare -> decide -> commit;
+
+  deny [label="FAIL CLOSED: DENY / ESCALATE\nparse error | timeout | deterministic deny | guardian/human deny\nstale or revoked token | destination change | exhausted budget", style="rounded,filled,bold", fillcolor="#EEEEEE", penwidth=1.4];
+  telemetry [label="IMMUTABLE TELEMETRY\nproposal -> decisions -> token -> commit -> external effect", penwidth=1.25];
+  {rank=same; deny; telemetry}
+  decide -> deny [style=dashed];
+  commit -> deny [style=dashed];
+  commit -> telemetry [style=dashed];
+}

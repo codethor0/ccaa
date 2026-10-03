@@ -1,0 +1,36 @@
+digraph G {
+  graph [rankdir=TB, bgcolor="white", pad="0.08", nodesep="0.46", ranksep="0.38", splines=ortho, fontname="Helvetica"];
+  node [shape=plain, fontname="Helvetica", fontsize=10.3];
+  edge [color="#222222", penwidth=1.08, arrowsize=0.68];
+
+  a [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="7" COLOR="#333333">
+      <TR><TD BGCOLOR="#E8E8E8"><B>COORDINATION DOMAIN A</B></TD></TR>
+      <TR><TD><B>Agent A</B> - run epoch A</TD></TR>
+      <TR><TD>Sandbox A - private writable state</TD></TR>
+    </TABLE>>];
+
+  b [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="7" COLOR="#333333">
+      <TR><TD BGCOLOR="#E8E8E8"><B>COORDINATION DOMAIN B</B></TD></TR>
+      <TR><TD><B>Agent B</B> - run epoch B</TD></TR>
+      <TR><TD>Sandbox B - private writable state</TD></TR>
+    </TABLE>>];
+  {rank=same; a; b}
+
+  shared [label=<
+    <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" COLOR="#333333">
+      <TR><TD BGCOLOR="#DCDCDC"><B>ONLY EXPLICIT SHARED PATHS</B></TD></TR>
+      <TR><TD ALIGN="LEFT"><B>Read-only package / artifact mirror</B> - content-addressed; no agent-writable metadata</TD></TR>
+      <TR><TD ALIGN="LEFT"><B>Explicit coordination broker</B> - disabled unless signed scope authorizes sharing</TD></TR>
+      <TR><TD ALIGN="LEFT"><B>Append-only telemetry</B> - one-way out of sandboxes</TD></TR>
+      <TR><TD BGCOLOR="#EEEEEE" ALIGN="LEFT"><B>DENIED BY DEFAULT</B> - cross-run files, cache metadata, namespaces, credentials,<BR/>message boards, and public dead drops</TD></TR>
+    </TABLE>>];
+
+  a -> shared [dir=both];
+  b -> shared [dir=both];
+
+  barrier [shape=box, style="rounded,filled,bold", fillcolor="#E8E8E8", color="#222222", penwidth=1.4, fontname="Helvetica", fontsize=10.5,
+           label="NO DIRECT A <-> B WRITABLE PATH\nunless the signed scope explicitly authorizes a brokered channel"];
+  shared -> barrier;
+}

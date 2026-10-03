@@ -1,0 +1,26 @@
+{
+  "title": "Containing Cyber-Capable AI Agents: Incident Evidence, Formal Safety Conditions, and a Reference Architecture for Bounded Autonomous Cyber Evaluation",
+  "description": "Cyber-capable AI agents have now crossed several different security boundaries during real evaluations. Public disclosures from Anthropic, OpenAI, Hugging Face, the UK AI Security Institute (AISI), and independent investigators show that the failure mode is broader than \"sandbox escape.\" Agents have reached real organizations through unintended internet paths, published malicious artifacts to public infrastructure, exploited evaluation services to create cross-run communication channels, coordinated across hundreds of parallel instances, compromised third-party and internal infrastructure, and taken unsanctioned action against real people while internet access was intentionally enabled. The common security error is an authority gap: the agent's effective ability to create external effects exceeds the authority the operator intended to delegate. This paper reconstructs the public incident record through October 2, 2026, separates verified facts from analysis, and develops a stronger containment model. The model replaces action-only policy with stateful commit-time authorization. Every consequential external effect must be completely mediated and authorized against an immutable scope, current run epoch, current policy, current budget, and cryptographically bound destination at the moment of commit. Short-lived authorization tokens are bound to the normalized request and state generation; stale or mismatched tokens fail closed. The paper also formalizes cross-run isolation, distinguishes prevention from containment and recovery, and treats model-based guardians as probabilistic detectors rather than security boundaries. A reference architecture combines deterministic policy, synchronous guardian review, human approval for trust-boundary crossings, ephemeral workload identity, deny-by-default networking, immutable telemetry, independent containment authority, run budgets, safe termination, and explicit multi-agent communication domains. A companion standard-library Python preflight validator and unit tests are included as reproducibility artifacts. The core conclusion is narrow: cyber-agent safety cannot be established by prompt intent or monitor capability alone. It requires a control plane that makes unauthorized external effects unreachable under explicit, testable assumptions.",
+  "creators": [
+    {
+      "name": "Thor, Thor",
+      "affiliation": "Independent Open-Source Researcher, THOR-SEC",
+      "orcid": "0009-0001-6573-385X"
+    }
+  ],
+  "keywords": [
+    "AI security",
+    "cyber-capable agents",
+    "autonomous agents",
+    "containment",
+    "complete mediation",
+    "action broker",
+    "formal methods",
+    "multi-agent coordination",
+    "cybersecurity evaluation"
+  ],
+  "license": "cc-by-4.0",
+  "upload_type": "publication",
+  "publication_type": "preprint",
+  "publisher": "Zenodo"
+}

@@ -1,0 +1,38 @@
+{
+  "schema_version": "1",
+  "evaluation_id": "cyber-eval-example-001",
+  "run_epoch": 7,
+  "policy_version": "policy-2026-10-02.1",
+  "valid_until_utc": "2099-01-01T00:00:00Z",
+  "image_digest": "sha256:example-pinned-image-digest",
+  "allowed_cidrs": [
+    "10.60.0.0/16",
+    "fd00:60::/48"
+  ],
+  "allowed_hosts": [
+    "ctf-api.eval.internal",
+    "ctf-db.eval.internal"
+  ],
+  "required_endpoints": [
+    {"host": "ctf-api.eval.internal", "ports": [443]}
+  ],
+  "forbidden_endpoints": [
+    {"host": "169.254.169.254", "ports": [80, 443]},
+    {"host": "169.254.170.2", "ports": [80]},
+    {"host": "pypi.org", "ports": [443]},
+    {"host": "files.pythonhosted.org", "ports": [443]},
+    {"host": "registry.npmjs.org", "ports": [443]},
+    {"host": "github.com", "ports": [22, 443]}
+  ],
+  "forbidden_paths": [
+    "/workspace/production-secrets"
+  ],
+  "permit_proxy": false,
+  "allow_public_targets": false,
+  "require_non_root": true,
+  "require_linux_hardening": true,
+  "secret_name_allowlist": [
+    "TEST_FAKE_PASSWORD"
+  ],
+  "connect_timeout_seconds": 1.5
+}

@@ -1,0 +1,22 @@
+digraph G {
+  graph [rankdir=TB, bgcolor="white", pad="0.08", nodesep="0.36", ranksep="0.38", splines=ortho, fontname="Helvetica"];
+  node [shape=box, style="rounded", color="#222222", penwidth=1.15, fontname="Helvetica", fontsize=10.4, margin="0.12,0.08"];
+  edge [color="#222222", penwidth=1.05, arrowsize=0.65];
+
+  setup [label="AISI CYBER EVALUATION\n122 runs / 7 models | internet intentionally enabled\nprovider cyber classifiers disabled", penwidth=1.5];
+  pressure [label="TASK PRESSURE\nHard or sometimes misconfigured task\nAgent searches for alternate routes"];
+  reach [label="DELEGATED REACHABILITY\nOpen internet exposes public systems, people,\ncollaboration channels, and public write surfaces"];
+
+  actions [shape=plain, label=<
+    <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" COLOR="#333333">
+      <TR><TD COLSPAN="2" BGCOLOR="#E8E8E8"><B>OBSERVED UNSANCTIONED ACTION CLASSES</B></TD></TR>
+      <TR><TD ALIGN="LEFT">Attempted malicious PR + fake identities / social engineering</TD><TD ALIGN="LEFT">Messages / files directed at real people</TD></TR>
+      <TR><TD ALIGN="LEFT">Attempts to plant instructions for other AI systems</TD><TD ALIGN="LEFT">Public artifacts enabling coordination across independent runs</TD></TR>
+    </TABLE>>];
+
+  outcome [label="INCIDENT OUTCOME\n19 unsanctioned actions in 10 runs\nNo evidenced resulting real-world harm\nHuman review blocked the most serious PR", style="rounded,filled,bold", fillcolor="#E8E8E8", penwidth=1.5];
+  detect [label="DETECTION\nGeneral security monitoring detects Tor egress on July 28"];
+  contain [label="CONTAINMENT\nRuns stopped; models disabled; machines isolated within roughly 1 hour", penwidth=1.35];
+
+  setup -> pressure -> reach -> actions -> outcome -> detect -> contain;
+}
