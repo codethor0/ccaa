@@ -1,7 +1,7 @@
 # Containing Cyber-Capable AI Agents
 
 [![Reproducibility](https://github.com/codethor0/ccaa/actions/workflows/reproducibility.yml/badge.svg?branch=main)](https://github.com/codethor0/ccaa/actions/workflows/reproducibility.yml)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23113152.svg)](https://doi.org/10.5281/zenodo.23113152)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23124432.svg)](https://doi.org/10.5281/zenodo.23124432)
 [![Paper License](https://img.shields.io/badge/paper-CC%20BY%204.0-lightgrey.svg)](LICENSE-PAPER.md)
 [![Code License](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE-CODE)
 [![ORCID](https://img.shields.io/badge/ORCID-0009--0001--6573--385X-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0009-0001-6573-385X)
@@ -25,7 +25,7 @@ The proposed architecture specifies **state-bound, commit-time authorization und
 
 ## Destination Binding and Commit-Time Authorization
 
-**Current prepublication manuscript.** The DOI above and `CITATION.cff` identify the last archived publication. The current PDF and LaTeX source contain the manuscript being prepared for the next archival deposit, while the unchanged prior PDF is preserved under `publication/zenodo-23113152/`.
+**Current archived publication.** The DOI above and `CITATION.cff` identify this deposited version. The prior Zenodo version remains preserved byte-for-byte under `publication/zenodo-23113152/`.
 
 Dipankar Sarkar identified a DNS rebinding counterexample: approving a hostname and then resolving it again for connection can substitute an out-of-scope address. The original paper already prohibited unconstrained second resolution, but did not make the connector contract or regression evidence sufficiently concrete.
 
@@ -92,14 +92,21 @@ It verifies:
 - the publication/repository release surface;
 - all eight editable Graphviz figure sources.
 
-The previously deposited PDF is preserved unchanged in `publication/zenodo-23113152/`. Its original digest is:
+The previous Zenodo version (10.5281/zenodo.23113152) is preserved unchanged in `publication/zenodo-23113152/`. Its digest is:
 
 ```text
 SHA-256
 0d11db683fe9f9eed585eb29854b02940bdf056e21d7a00ce4ce6e106460db1d
 ```
 
-The current prepublication manuscript has a separate digest and prepublication status in `publication/manifest.json`; automated checks verify both files without assigning the new bytes the prior DOI.
+The current Zenodo version (10.5281/zenodo.23124432) is preserved under `publication/zenodo-23124432/` and is byte-identical to the repository-root PDF. Its digest is:
+
+```text
+SHA-256
+59074a5a1996a8851617a0d618f4a13df361c5bc1f19c487999f93d22f69cff4
+```
+
+`publication/manifest.json` records both immutable publication identities.
 
 ## Reproduce
 
@@ -132,7 +139,7 @@ The validator is a diagnostic release gate, not a proof of runtime isolation. A 
 
 | Path | Description | License |
 | --- | --- | --- |
-| `Containing-Cyber-Capable-AI-Agents.pdf` | Current prepublication manuscript; pending archival deposit | CC BY 4.0 |
+| `Containing-Cyber-Capable-AI-Agents.pdf` | Current archived publication; byte-identical to the latest Zenodo deposit | CC BY 4.0 |
 | `paper.tex` | LaTeX publication source | CC BY 4.0 |
 | `abstract.txt` | Plain-text abstract | CC BY 4.0 |
 | `figures/*.dot` | Editable Graphviz sources for all eight figures | CC BY 4.0 |
@@ -146,8 +153,9 @@ The validator is a diagnostic release gate, not a proof of runtime isolation. A 
 | `tests/test_commit_authorization.py` | Canonicalization, tamper, freshness, replay, and concurrency tests | MIT |
 | `tests/test_live_loopback.py` | Live local resolver/socket integration tests | MIT |
 | `evaluation/` | Controlled Linux posture, loopback, replay/concurrency, and latency characterization | MIT |
-| `publication/manifest.json` | Separate prepublication and archived artifact identities | Metadata |
-| `publication/zenodo-23113152/` | Immutable published PDF | CC BY 4.0 |
+| `publication/manifest.json` | Current and prior immutable publication identities | Metadata |
+| `publication/zenodo-23124432/` | Current immutable Zenodo-version PDF | CC BY 4.0 |
+| `publication/zenodo-23113152/` | Prior immutable Zenodo-version PDF | CC BY 4.0 |
 | `examples/agent_eval_scope.example.json` | Example bounded-evaluation scope manifest | MIT |
 | `.github/workflows/reproducibility.yml` | Continuous reproducibility checks | MIT |
 | `CITATION.cff` | Machine-readable citation metadata | Metadata |
@@ -157,9 +165,9 @@ The validator is a diagnostic release gate, not a proof of runtime isolation. A 
 
 | Item | Value |
 | --- | --- |
-| Archived publication date | October 2, 2026 |
-| Current manuscript | Prepublication; not yet deposited |
-| DOI | [10.5281/zenodo.23113152](https://doi.org/10.5281/zenodo.23113152) |
+| Latest publication date | October 3, 2026 |
+| Current record | [10.5281/zenodo.23124432](https://doi.org/10.5281/zenodo.23124432) |
+| DOI | [10.5281/zenodo.23124432](https://doi.org/10.5281/zenodo.23124432) |
 | GitHub release | [Latest release](https://github.com/codethor0/ccaa/releases/latest) |
 | Paper license | CC BY 4.0 |
 | Code license | MIT |
@@ -172,13 +180,13 @@ The validator is a diagnostic release gate, not a proof of runtime isolation. A 
 
 ## Citation
 
-Thor, T. (2026). *Containing Cyber-Capable AI Agents: Incident Evidence, Formal Safety Conditions, and a Reference Architecture for Bounded Autonomous Cyber Evaluation*. Zenodo. https://doi.org/10.5281/zenodo.23113152
+Thor, T. (2026). *Containing Cyber-Capable AI Agents: Incident Evidence, Formal Safety Conditions, and a Reference Architecture for Bounded Autonomous Cyber Evaluation*. Zenodo. https://doi.org/10.5281/zenodo.23124432
 
 Machine-readable citation metadata is available in [`CITATION.cff`](CITATION.cff).
 
 ## Research Status and Scope
 
-This work is a public-source technical analysis, formal architectural model, and reference design. The current manuscript is prepublication and does not silently alter the archived DOI record.
+This work is a public-source technical analysis, formal architectural model, and reference design. The repository-root PDF is the current archived Zenodo version, while prior version bytes remain preserved separately for provenance.
 
 It does **not** claim:
 

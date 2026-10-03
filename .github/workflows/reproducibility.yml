@@ -54,8 +54,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_DESCRIPTION: "Public-source incident analysis and reference architecture for containing cyber-capable AI agents with state-bound, commit-time authorization."
-          EXPECTED_HOMEPAGE: "https://doi.org/10.5281/zenodo.23113152"
-          EXPECTED_PDF_SHA256: "0d11db683fe9f9eed585eb29854b02940bdf056e21d7a00ce4ce6e106460db1d"
+          EXPECTED_HOMEPAGE: "https://doi.org/10.5281/zenodo.23124432"
+          EXPECTED_PDF_SHA256: "59074a5a1996a8851617a0d618f4a13df361c5bc1f19c487999f93d22f69cff4"
+          EXPECTED_RELEASE_TAG: "v2.1.0"
         run: |
           set -euo pipefail
 
@@ -82,15 +83,22 @@ jobs:
             jq -e --arg topic "$topic" '.topics | index($topic) != null' <<<"$repo_json" >/dev/null
           done
 
-          release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest")"
-
-          test "$(jq -r '.draft' <<<"$release_json")" = "false"
-          test "$(jq -r '.prerelease' <<<"$release_json")" = "false"
-
-          asset_digest="$(
-            jq -r --arg name "Containing-Cyber-Capable-AI-Agents.pdf" \
-              '.assets[] | select(.name == $name) | .digest // ""' \
-              <<<"$release_json"
-          )"
-
-          test "$asset_digest" = "sha256:${EXPECTED_PDF_SHA256}"
+          release_ok=false
+          for attempt in $(seq 1 30); do
+            release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest")"
+            release_tag="$(jq -r '.tag_name // ""' <<<"$release_json")"
+            asset_digest="$(
+              jq -r --arg name "Containing-Cyber-Capable-AI-Agents.pdf" \
+                '.assets[] | select(.name == $name) | .digest // ""' \
+                <<<"$release_json"
+            )"
+            if [ "$release_tag" = "$EXPECTED_RELEASE_TAG" ] && \
+               [ "$asset_digest" = "sha256:${EXPECTED_PDF_SHA256}" ] && \
+               [ "$(jq -r '.draft' <<<"$release_json")" = "false" ] && \
+               [ "$(jq -r '.prerelease' <<<"$release_json")" = "false" ]; then
+              release_ok=true
+              break
+            fi
+            sleep 3
+          done
+          test "$release_ok" = "true"
