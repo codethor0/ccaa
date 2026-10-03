@@ -131,10 +131,9 @@ The validator is a diagnostic release gate, not a proof of runtime isolation. A 
 
 | Item | Value |
 | --- | --- |
-| Version | `2.0.0` |
 | Publication date | October 2, 2026 |
 | DOI | [10.5281/zenodo.23113152](https://doi.org/10.5281/zenodo.23113152) |
-| GitHub release | [v2.0.0](https://github.com/codethor0/ccaa/releases/tag/v2.0.0) |
+| GitHub release | [Latest release](https://github.com/codethor0/ccaa/releases/latest) |
 | Paper license | CC BY 4.0 |
 | Code license | MIT |
 
@@ -146,7 +145,7 @@ The validator is a diagnostic release gate, not a proof of runtime isolation. A 
 
 ## Citation
 
-Thor, T. (2026). *Containing Cyber-Capable AI Agents: Incident Evidence, Formal Safety Conditions, and a Reference Architecture for Bounded Autonomous Cyber Evaluation* (Version 2.0.0). Zenodo. https://doi.org/10.5281/zenodo.23113152
+Thor, T. (2026). *Containing Cyber-Capable AI Agents: Incident Evidence, Formal Safety Conditions, and a Reference Architecture for Bounded Autonomous Cyber Evaluation*. Zenodo. https://doi.org/10.5281/zenodo.23113152
 
 Machine-readable citation metadata is available in [`CITATION.cff`](CITATION.cff).
 
