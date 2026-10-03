@@ -1,0 +1,24 @@
+{
+  "legacy": {
+    "dns_calls": 2,
+    "connect_args": [
+      [
+        "169.254.169.254",
+        443
+      ]
+    ],
+    "checks_passed": true
+  },
+  "revised": {
+    "dns_calls": 1,
+    "connect_args": [
+      [
+        "10.60.0.2",
+        443
+      ]
+    ],
+    "checks_passed": true
+  },
+  "base_git_commit": "d56a06c42af52f461bbda619ae220f28bc662060",
+  "conditions": "Deterministic mocked DNS and sockets; no real network traffic."
+}

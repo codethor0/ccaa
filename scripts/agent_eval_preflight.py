@@ -17,6 +17,7 @@ import datetime as dt
 import hashlib
 import ipaddress
 import json
+import math
 import os
 import re
 import socket
@@ -149,26 +150,64 @@ def addr_allowed(addr: ipaddress._BaseAddress, nets: Iterable[ipaddress._BaseNet
     return any(addr.version == n.version and addr in n for n in nets)
 
 
+def canonical_address(value: str) -> ipaddress._BaseAddress:
+    """Use one address meaning for CIDR checks and numeric socket calls."""
+    if "%" in value:
+        raise ValueError("scoped IPv6 addresses require an explicit interface policy")
+    addr = ipaddress.ip_address(value)
+    if isinstance(addr, ipaddress.IPv6Address) and addr.ipv4_mapped is not None:
+        return addr.ipv4_mapped
+    return addr
+
+
+def host_key(value: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError("host must be a string")
+    host = value.strip().lower().rstrip(".")
+    try:
+        return str(canonical_address(host))
+    except ValueError:
+        pass
+    labels = host.split(".")
+    if len(host) > 253 or not all(
+        re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", label)
+        for label in labels
+    ):
+        raise ValueError("host must be an ASCII DNS name or an unscoped IP literal")
+    return host
+
+
 def resolve_all(host: str) -> set[ipaddress._BaseAddress]:
+    try:
+        return {canonical_address(host)}
+    except ValueError:
+        pass
     out: set[ipaddress._BaseAddress] = set()
     for family, socktype, proto, canon, sockaddr in socket.getaddrinfo(host, None, type=socket.SOCK_STREAM):
         del family, socktype, proto, canon
-        out.add(ipaddress.ip_address(sockaddr[0]))
+        out.add(canonical_address(sockaddr[0]))
     return out
 
 
-def check_scope_binding(scope: dict[str, Any], nets: list[ipaddress._BaseNetwork], results: list[Result]) -> None:
+def check_scope_binding(
+    scope: dict[str, Any],
+    nets: list[ipaddress._BaseNetwork],
+    results: list[Result],
+) -> dict[str, tuple[ipaddress._BaseAddress, ...]]:
+    """Return only fully validated, immutable address snapshots."""
+    bindings: dict[str, tuple[ipaddress._BaseAddress, ...]] = {}
     hosts = scope.get("allowed_hosts", [])
     add(results, "allowed_hosts_nonempty", isinstance(hosts, list) and bool(hosts), "CRITICAL",
         f"count={len(hosts) if isinstance(hosts, list) else 0}")
     for raw_host in hosts if isinstance(hosts, list) else []:
-        host = str(raw_host).strip()
-        if not host or "*" in host:
-            add(results, f"scope_binding:{host or '<empty>'}", False, "CRITICAL", "wildcards/empty host forbidden")
+        try:
+            host = host_key(raw_host)
+        except ValueError as exc:
+            add(results, f"scope_binding:{raw_host!r}", False, "CRITICAL", str(exc))
             continue
         try:
             addresses = resolve_all(host)
-        except socket.gaierror as exc:
+        except (OSError, ValueError) as exc:
             add(results, f"scope_binding:{host}", False, "CRITICAL", f"DNS failed: {exc}")
             continue
         outside = sorted(str(a) for a in addresses if not addr_allowed(a, nets))
@@ -176,21 +215,47 @@ def check_scope_binding(scope: dict[str, Any], nets: list[ipaddress._BaseNetwork
         if outside:
             detail += " outside_scope=" + ",".join(outside)
         add(results, f"scope_binding:{host}", bool(addresses) and not outside, "CRITICAL", detail)
+        if addresses and not outside:
+            bindings[host] = tuple(sorted(addresses, key=lambda a: (a.version, int(a))))
+    return bindings
 
 
-def endpoint_reachable(host: str, port: int, timeout: float) -> tuple[bool, str]:
-    try:
-        infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
-    except socket.gaierror as exc:
-        return False, f"DNS failed: {exc}"
+def endpoint_reachable(
+    addresses: tuple[ipaddress._BaseAddress, ...], port: int, timeout: float,
+) -> tuple[bool | None, str]:
+    """Probe numeric, already approved endpoints; never resolve a hostname.
+
+    None means an unverifiable/error result, which must fail either probe type.
+    Peer inspection is diagnostic evidence, not prevention of the first packet.
+    This helper sends no application data and performs no TLS identity check.
+    """
+    if not addresses or not all(
+        isinstance(a, (ipaddress.IPv4Address, ipaddress.IPv6Address))
+        and canonical_address(str(a)) == a for a in addresses
+    ):
+        return None, "missing or noncanonical numeric address snapshot"
+    if type(port) is not int or not 1 <= port <= 65535:
+        return None, "port must be an integer in 1..65535"
+    if not math.isfinite(timeout) or not 0 < timeout <= 30:
+        return None, "timeout must be finite and in (0, 30]"
     errors: list[str] = []
-    for family, socktype, proto, canon, sockaddr in infos:
-        del canon
-        sock = socket.socket(family, socktype, proto)
-        sock.settimeout(timeout)
+    for addr in addresses:
+        family = socket.AF_INET if addr.version == 4 else socket.AF_INET6
+        sockaddr = (str(addr), port) if addr.version == 4 else (str(addr), port, 0, 0)
         try:
+            sock = socket.socket(family, socket.SOCK_STREAM)
+        except OSError as exc:
+            return None, f"socket creation failed: {exc.__class__.__name__}"
+        try:
+            sock.settimeout(timeout)
             sock.connect(sockaddr)
-            return True, f"connected={sockaddr[0]}:{sockaddr[1]}"
+            try:
+                peer = sock.getpeername()
+                if canonical_address(peer[0]) != addr or peer[1] != port:
+                    return None, f"peer mismatch for approved={addr}:{port}"
+            except (OSError, ValueError) as exc:
+                return None, f"peer inspection failed: {exc.__class__.__name__}"
+            return True, f"connected={addr}:{port} numeric_binding=verified"
         except OSError as exc:
             errors.append(f"{sockaddr[0]}:{sockaddr[1]} {exc.__class__.__name__}")
         finally:
@@ -198,17 +263,51 @@ def endpoint_reachable(host: str, port: int, timeout: float) -> tuple[bool, str]
     return False, "; ".join(errors[:4]) or "unreachable"
 
 
-def check_endpoints(scope: dict[str, Any], results: list[Result], timeout: float) -> None:
-    for endpoint in scope.get("required_endpoints", []):
-        host = str(endpoint.get("host", ""))
-        for port in endpoint.get("ports", []):
-            ok, detail = endpoint_reachable(host, int(port), timeout)
-            add(results, f"required_endpoint:{host}:{port}", ok, "CRITICAL", detail)
-    for endpoint in scope.get("forbidden_endpoints", []):
-        host = str(endpoint.get("host", ""))
-        for port in endpoint.get("ports", []):
-            reachable, detail = endpoint_reachable(host, int(port), timeout)
-            add(results, f"forbidden_endpoint:{host}:{port}", not reachable, "CRITICAL", detail)
+def check_endpoints(
+    scope: dict[str, Any], results: list[Result], timeout: float,
+    bindings: dict[str, tuple[ipaddress._BaseAddress, ...]],
+) -> None:
+    for kind in ("required", "forbidden"):
+        endpoints = scope.get(f"{kind}_endpoints", [])
+        if not isinstance(endpoints, list):
+            add(results, f"{kind}_endpoint_schema", False, "CRITICAL", "endpoints must be a list")
+            continue
+        for index, endpoint in enumerate(endpoints):
+            check = f"{kind}_endpoint:{index}"
+            try:
+                if not isinstance(endpoint, dict):
+                    raise ValueError("endpoint must be an object")
+                host = host_key(endpoint.get("host", ""))
+                check = f"{kind}_endpoint:{host}"
+                ports = endpoint.get("ports")
+                if not isinstance(ports, list) or not ports or any(
+                    type(p) is not int or not 1 <= p <= 65535 for p in ports
+                ):
+                    raise ValueError("ports must be a nonempty list of integers in 1..65535")
+                if kind == "required":
+                    addresses = bindings.get(host, ())
+                    if not addresses:
+                        raise ValueError("required endpoint has no approved scope-binding snapshot")
+                else:
+                    # Out-of-target probes are a separate, explicitly scoped
+                    # diagnostic capability. A hostname alone is insufficient.
+                    cidrs = endpoint.get("probe_cidrs")
+                    if not isinstance(cidrs, list) or not cidrs:
+                        raise ValueError("forbidden probes require explicit probe_cidrs")
+                    probe_nets = [ipaddress.ip_network(c, strict=True) for c in cidrs]
+                    if any(n.prefixlen == 0 for n in probe_nets):
+                        raise ValueError("world-route diagnostic probe scope forbidden")
+                    resolved = resolve_all(host)
+                    if not resolved or any(not addr_allowed(a, probe_nets) for a in resolved):
+                        raise ValueError("forbidden probe resolution empty or outside probe_cidrs")
+                    addresses = tuple(sorted(resolved, key=lambda a: (a.version, int(a))))
+            except (OSError, ValueError, TypeError) as exc:
+                add(results, check, False, "CRITICAL", str(exc))
+                continue
+            for port in ports:
+                reachable, detail = endpoint_reachable(addresses, port, timeout)
+                passed = reachable is True if kind == "required" else reachable is False
+                add(results, f"{kind}_endpoint:{host}:{port}", passed, "CRITICAL", detail)
 
 
 def check_environment(scope: dict[str, Any], results: list[Result]) -> None:
@@ -269,7 +368,23 @@ def proc_status() -> dict[str, str]:
     return out
 
 
+LINUX_CAPABILITY_FIELDS = ("CapInh", "CapPrm", "CapEff", "CapBnd", "CapAmb")
+
+
+def _hex_mask_is_zero(value: str) -> bool:
+    try:
+        return int(value, 16) == 0
+    except (TypeError, ValueError):
+        return False
+
+
 def check_linux_hardening(scope: dict[str, Any], results: list[Result]) -> None:
+    """Observe Linux hardening posture; do not simulate kernel behavior.
+
+    These checks read kernel-reported capability, no-new-privileges, and
+    seccomp state from /proc/self/status. They do not prove that a seccomp
+    filter covers every effect-capable syscall or that no bypass exists.
+    """
     if not scope.get("require_linux_hardening", True):
         add(results, "linux_hardening", True, "INFO", "not required by scope")
         return
@@ -277,16 +392,29 @@ def check_linux_hardening(scope: dict[str, Any], results: list[Result]) -> None:
     if not status:
         add(results, "linux_proc_status", False, "CRITICAL", "/proc/self/status unavailable")
         return
-    cap_eff = status.get("CapEff", "")
-    try:
-        cap_zero = int(cap_eff, 16) == 0
-    except ValueError:
-        cap_zero = False
-    add(results, "linux_effective_capabilities", cap_zero, "CRITICAL", f"CapEff={cap_eff}")
+
+    capability_values = {name: status.get(name, "") for name in LINUX_CAPABILITY_FIELDS}
+    cap_eff = capability_values["CapEff"]
+    add(results, "linux_effective_capabilities", _hex_mask_is_zero(cap_eff), "CRITICAL", f"CapEff={cap_eff}")
+    add(
+        results,
+        "linux_all_capability_sets_zero",
+        all(_hex_mask_is_zero(value) for value in capability_values.values()),
+        "CRITICAL",
+        " ".join(f"{name}={value}" for name, value in capability_values.items()),
+    )
+
     nnp = status.get("NoNewPrivs", "")
     add(results, "linux_no_new_privileges", nnp == "1", "CRITICAL", f"NoNewPrivs={nnp}")
+
     seccomp = status.get("Seccomp", "")
     add(results, "linux_seccomp", seccomp == "2", "CRITICAL", f"Seccomp={seccomp}")
+    filters = status.get("Seccomp_filters", "")
+    try:
+        filters_ok = seccomp == "2" and int(filters) >= 1
+    except (TypeError, ValueError):
+        filters_ok = False
+    add(results, "linux_seccomp_filter_count", filters_ok, "CRITICAL", f"Seccomp_filters={filters}")
 
 
 def check_image_digest(scope: dict[str, Any], running: str | None, results: list[Result]) -> None:
@@ -322,9 +450,22 @@ def main() -> int:
     check_trusted_scope_digest(scope_sha, args.expected_scope_sha256, results)
     check_expiry(scope, utc_now(), results)
     nets = parse_networks(scope, results)
-    check_scope_binding(scope, nets, results)
-    timeout = float(scope.get("connect_timeout_seconds", 1.5))
-    check_endpoints(scope, results, timeout)
+    # DNS lookups and SYNs are effects too: never probe an untrusted,
+    # expired, or already-invalid scope.
+    if all(r.passed for r in results if r.severity == "CRITICAL"):
+        bindings = check_scope_binding(scope, nets, results)
+        try:
+            timeout = float(scope.get("connect_timeout_seconds", 1.5))
+        except (ValueError, TypeError):
+            timeout = float("nan")
+        timeout_ok = math.isfinite(timeout) and 0 < timeout <= 30
+        add(results, "connect_timeout", timeout_ok, "CRITICAL", "required range: (0, 30] seconds")
+        if all(r.passed for r in results if r.severity == "CRITICAL"):
+            check_endpoints(scope, results, timeout, bindings)
+        else:
+            add(results, "network_probe_gate", False, "CRITICAL", "probes skipped after invalid binding or timeout")
+    else:
+        add(results, "network_probe_gate", False, "CRITICAL", "DNS and probes skipped after invalid scope")
     check_environment(scope, results)
     check_local_paths(scope, results)
     check_linux_hardening(scope, results)
@@ -345,7 +486,9 @@ def main() -> int:
         "results": [asdict(r) for r in results],
         "limitations": [
             "Negative endpoint probes do not prove absence of all egress.",
-            "DNS results can change; the runtime broker must bind and revalidate the committed destination.",
+            "Probe sockets use validated numeric address snapshots; runtime actions require fresh broker-owned binding.",
+            "TCP reachability and peer inspection do not authenticate a service, verify TLS, or prove proxy/backend routing.",
+            "Linux Cap*/NoNewPrivs/seccomp checks observe kernel-reported posture; they do not simulate capability or seccomp behavior and do not prove complete mediation.",
             "Secret detection is heuristic and cannot prove absence of credentials.",
             "This process can be compromised with the workload; signature and image trust roots must remain outside it.",
         ],

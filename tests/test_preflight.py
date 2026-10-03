@@ -95,17 +95,54 @@ class PreflightTests(unittest.TestCase):
 
     @mock.patch.object(pf, "proc_status")
     def test_linux_hardening_passes_expected_posture(self, status):
-        status.return_value = {"CapEff": "0000000000000000", "NoNewPrivs": "1", "Seccomp": "2"}
+        status.return_value = {
+            "CapInh": "0000000000000000", "CapPrm": "0000000000000000",
+            "CapEff": "0000000000000000", "CapBnd": "0000000000000000",
+            "CapAmb": "0000000000000000", "NoNewPrivs": "1", "Seccomp": "2",
+            "Seccomp_filters": "1",
+        }
         results = []
         pf.check_linux_hardening(self.base_scope(), results)
         self.assertTrue(all(r.passed for r in results))
 
     @mock.patch.object(pf, "proc_status")
     def test_linux_capability_fails(self, status):
-        status.return_value = {"CapEff": "0000000000000001", "NoNewPrivs": "1", "Seccomp": "2"}
+        status.return_value = {
+            "CapInh": "0000000000000000", "CapPrm": "0000000000000000",
+            "CapEff": "0000000000000001", "CapBnd": "0000000000000000",
+            "CapAmb": "0000000000000000", "NoNewPrivs": "1", "Seccomp": "2",
+            "Seccomp_filters": "1",
+        }
         results = []
         pf.check_linux_hardening(self.base_scope(), results)
         self.assertFalse(next(r for r in results if r.check == "linux_effective_capabilities").passed)
+
+    @mock.patch.object(pf, "proc_status")
+    def test_linux_bounding_capability_fails(self, status):
+        status.return_value = {
+            "CapInh": "0000000000000000", "CapPrm": "0000000000000000",
+            "CapEff": "0000000000000000", "CapBnd": "0000000000000001",
+            "CapAmb": "0000000000000000", "NoNewPrivs": "1", "Seccomp": "2",
+            "Seccomp_filters": "1",
+        }
+        results = []
+        pf.check_linux_hardening(self.base_scope(), results)
+        self.assertFalse(next(r for r in results if r.check == "linux_all_capability_sets_zero").passed)
+
+    @mock.patch.object(pf, "proc_status")
+    def test_linux_seccomp_filter_count_required(self, status):
+        status.return_value = {
+            "CapInh": "0000000000000000", "CapPrm": "0000000000000000",
+            "CapEff": "0000000000000000", "CapBnd": "0000000000000000",
+            "CapAmb": "0000000000000000", "NoNewPrivs": "1", "Seccomp": "2",
+            "Seccomp_filters": "0",
+        }
+        results = []
+        pf.check_linux_hardening(self.base_scope(), results)
+        self.assertFalse(next(r for r in results if r.check == "linux_seccomp_filter_count").passed)
+
+    def test_linux_hardening_docstring_states_observation_not_simulation(self):
+        self.assertIn("do not simulate", pf.check_linux_hardening.__doc__)
 
     def test_image_digest_binding(self):
         results = []

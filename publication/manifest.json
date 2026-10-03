@@ -1,0 +1,16 @@
+{
+  "status": "prepublication",
+  "base_git_commit": "d56a06c42af52f461bbda619ae220f28bc662060",
+  "published": {
+    "doi": "10.5281/zenodo.23113152",
+    "date": "2026-10-02",
+    "pdf": "publication/zenodo-23113152/Containing-Cyber-Capable-AI-Agents.pdf",
+    "sha256": "0d11db683fe9f9eed585eb29854b02940bdf056e21d7a00ce4ce6e106460db1d"
+  },
+  "candidate_date": "2026-10-03",
+  "candidate": {
+    "pdf": "Containing-Cyber-Capable-AI-Agents.pdf",
+    "sha256": "59074a5a1996a8851617a0d618f4a13df361c5bc1f19c487999f93d22f69cff4",
+    "doi": null
+  }
+}
