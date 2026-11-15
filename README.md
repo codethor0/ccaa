@@ -210,3 +210,7 @@ Please open a GitHub issue and identify the relevant section, theorem, figure, r
 - Validator, tests, CI configuration, examples, and build tooling: **MIT License**
 
 See [`LICENSE-PAPER.md`](LICENSE-PAPER.md) and [`LICENSE-CODE`](LICENSE-CODE) for the complete terms.
+
+## Support
+
+If this research is useful to you, you can support continued independent work through [GitHub Sponsors](https://github.com/sponsors/codethor0).
